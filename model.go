@@ -36,7 +36,7 @@ type GetLogsResponse struct {
 // note: GetLogLinesResponse.Logs is nil when use GetLogLinesResponse
 type GetLogLinesResponse struct {
 	GetLogsResponse
-	Lines     []json.RawMessage
+	Lines []json.RawMessage
 }
 
 func (resp *GetLogsResponse) IsComplete() bool {

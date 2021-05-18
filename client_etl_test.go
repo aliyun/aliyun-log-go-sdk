@@ -125,7 +125,7 @@ func (s *ETLJobTestV2Suite) TestClient_StartStopETLJobV2() {
 		}
 	}
 
-		err = s.client.StopETL(s.projectName, s.etlName)
+	err = s.client.StopETL(s.projectName, s.etlName)
 	for {
 		etljob, err := s.client.GetETL(s.projectName, s.etlName)
 		s.Require().Nil(err)
@@ -134,7 +134,7 @@ func (s *ETLJobTestV2Suite) TestClient_StartStopETLJobV2() {
 			break
 		}
 	}
-		err = s.client.StartETL(s.projectName, s.etlName)
+	err = s.client.StartETL(s.projectName, s.etlName)
 	for {
 		etljob, err := s.client.GetETL(s.projectName, s.etlName)
 		s.Require().Nil(err)

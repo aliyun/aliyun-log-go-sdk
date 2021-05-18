@@ -48,49 +48,44 @@ type ETLSink struct {
 }
 
 type ListETLResponse struct {
-	Total   int         `json:"total"`
-	Count   int         `json:"count"`
+	Total   int    `json:"total"`
+	Count   int    `json:"count"`
 	Results []*ETL `json:"results"`
 }
 
-
 func NewETL(endpoint, accessKeyId, accessKeySecret, logstore, name, project string) ETL {
 	sink := ETLSink{
-		AccessKeyId:accessKeyId,
-		AccessKeySecret:accessKeySecret,
-		Endpoint:endpoint,
-		Logstore:logstore,
-		Name:name,
-		Project:project,
-		Type: ETLSinksType,
+		AccessKeyId:     accessKeyId,
+		AccessKeySecret: accessKeySecret,
+		Endpoint:        endpoint,
+		Logstore:        logstore,
+		Name:            name,
+		Project:         project,
+		Type:            ETLSinksType,
 	}
-	config := ETLConfiguration {
-		AccessKeyId:accessKeyId,
-		AccessKeySecret:accessKeySecret,
-		FromTime: time.Now().Unix(),
-		Script: "e_set('new','aliyun')",
-		Version:ETLVersion,
-		Logstore:logstore,
-		ETLSinks:[]ETLSink{sink},
-		Parameters: map[string]string{},
-
+	config := ETLConfiguration{
+		AccessKeyId:     accessKeyId,
+		AccessKeySecret: accessKeySecret,
+		FromTime:        time.Now().Unix(),
+		Script:          "e_set('new','aliyun')",
+		Version:         ETLVersion,
+		Logstore:        logstore,
+		ETLSinks:        []ETLSink{sink},
+		Parameters:      map[string]string{},
 	}
 	schedule := ETLSchedule{
-		Type:"Resident",
+		Type: "Resident",
 	}
-	etljob := ETL {
-		Configuration:config,
-		DisplayName:"displayname",
-		Description:"go sdk case",
-		Name:name,
-		Schedule:schedule,
-		Type:ETLType,
-
+	etljob := ETL{
+		Configuration: config,
+		DisplayName:   "displayname",
+		Description:   "go sdk case",
+		Name:          name,
+		Schedule:      schedule,
+		Type:          ETLType,
 	}
 	return etljob
 }
-
-
 
 func (c *Client) CreateETL(project string, etljob ETL) error {
 	body, err := json.Marshal(etljob)

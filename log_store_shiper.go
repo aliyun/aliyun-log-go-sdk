@@ -109,10 +109,10 @@ func (s *LogStore) ListShipper() ([]string, error) {
 		json.Unmarshal(buf, err)
 		return nil, err
 	}
-	type Body struct{
-		Count int
+	type Body struct {
+		Count   int
 		Shipper []string
-		Total int
+		Total   int
 	}
 
 	body := &Body{}

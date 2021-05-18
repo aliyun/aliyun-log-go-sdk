@@ -25,7 +25,6 @@ var (
 	}
 )
 
-
 func retryReadErrorCheck(ctx context.Context, err error) (bool, error) {
 	if err == nil {
 		return false, nil

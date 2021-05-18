@@ -1179,3 +1179,73 @@ func (c *TokenAutoUpdateClient) ListTagResources(project string,
 	}
 	return
 }
+
+func (c *TokenAutoUpdateClient) CreateETL(project string, etljob ETL) (err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		err = c.logClient.CreateETL(project, etljob)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
+func (c *TokenAutoUpdateClient) GetETL(project string, etlName string) (etlJob *ETL, err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		etlJob, err = c.logClient.GetETL(project, etlName)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
+func (c *TokenAutoUpdateClient) UpdateETL(project string, etljob ETL) (err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		err = c.logClient.UpdateETL(project, etljob)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
+func (c *TokenAutoUpdateClient) DeleteETL(project string, etlName string) (err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		err = c.logClient.DeleteETL(project, etlName)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
+func (c *TokenAutoUpdateClient) ListETL(project string, offset int, size int) (rep *ListETLResponse, err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		rep, err = c.logClient.ListETL(project, offset, size)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
+func (c *TokenAutoUpdateClient) StartETL(project, name string) (err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		err = c.logClient.StartETL(project, name)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
+func (c *TokenAutoUpdateClient) StopETL(project, name string) (err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		err = c.logClient.StopETL(project, name)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}

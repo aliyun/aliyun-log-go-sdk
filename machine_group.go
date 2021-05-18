@@ -25,10 +25,10 @@ type MachineGroup struct {
 
 // Machine defines machine struct
 type Machine struct {
-	IP            string
-	UniqueID      string `json:"machine-uniqueid"`
-	UserdefinedID string `json:"userdefined-id"`
-	LastHeartBeatTime int `json:"lastHeartbeatTime"`
+	IP                string
+	UniqueID          string `json:"machine-uniqueid"`
+	UserdefinedID     string `json:"userdefined-id"`
+	LastHeartBeatTime int    `json:"lastHeartbeatTime"`
 }
 
 // MachineList defines machine list

@@ -14,4 +14,5 @@ type EtlMeta struct {
 	MetaKey   string            `json:"etlMetaKey"`
 	MetaTag   string            `json:"etlMetaTag"`
 	MetaValue map[string]string `json:"etlMetaValue"`
+	Enable    bool				`json:"enable,omitempty"`
 }
