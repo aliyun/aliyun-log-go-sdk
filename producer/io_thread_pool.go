@@ -40,6 +40,9 @@ func (threadPool *IoThreadPool) popTask() *ProducerBatch {
 		return nil
 	}
 	ele := threadPool.queue.Front()
+	if ele == nil {
+		return nil
+	}
 	threadPool.queue.Remove(ele)
 	return ele.Value.(*ProducerBatch)
 }
