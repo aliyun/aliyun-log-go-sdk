@@ -48,7 +48,7 @@ func (consumerWorker *ConsumerWorker) StopAndWait() {
 	consumerWorker.workerShutDownFlag.Store(true)
 	consumerWorker.consumerHeatBeat.shutDownHeart()
 	consumerWorker.waitGroup.Wait()
-	level.Info(consumerWorker.Logger).Log("msg", "consumer worker %v stopped", "consumer name", consumerWorker.client.option.ConsumerName)
+	level.Info(consumerWorker.Logger).Log("msg", "consumer worker stopped", "consumer name", consumerWorker.client.option.ConsumerName)
 }
 
 func (consumerWorker *ConsumerWorker) run() {
