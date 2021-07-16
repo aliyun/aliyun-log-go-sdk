@@ -14,6 +14,7 @@ type SingleHistogram struct {
 }
 
 type GetHistogramsResponse struct {
+	MetaResponse
 	Progress   string            `json:"progress"`
 	Count      int64             `json:"count"`
 	Histograms []SingleHistogram `json:"histograms"`
@@ -23,8 +24,15 @@ func (resp *GetHistogramsResponse) IsComplete() bool {
 	return strings.ToLower(resp.Progress) == "complete"
 }
 
+// MetaResponse defines common response for all SLS APIs,
+// as is documented https://help.aliyun.com/document_detail/29011.html
+type MetaResponse struct {
+	RequestId string
+}
+
 // GetLogsResponse defines response from GetLogs call
 type GetLogsResponse struct {
+	MetaResponse
 	Progress string              `json:"progress"`
 	Count    int64               `json:"count"`
 	Logs     []map[string]string `json:"logs"`
@@ -36,7 +44,7 @@ type GetLogsResponse struct {
 // note: GetLogLinesResponse.Logs is nil when use GetLogLinesResponse
 type GetLogLinesResponse struct {
 	GetLogsResponse
-	Lines     []json.RawMessage
+	Lines []json.RawMessage
 }
 
 func (resp *GetLogsResponse) IsComplete() bool {
