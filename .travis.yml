@@ -1,10 +1,11 @@
 language: go
 
 go:
- - "1.8"
+ - "1.16.4"
 
 install:
  - go get github.com/mattn/goveralls
+ - go mod tidy
 
 script:
  - $HOME/gopath/bin/goveralls -service=travis-ci
