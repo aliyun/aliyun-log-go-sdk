@@ -190,6 +190,9 @@ func realRequest(ctx context.Context, project *LogProject, method, uri string, h
 
 	// Handle the endpoint
 	urlStr := fmt.Sprintf("%s%s", baseURL, uri)
+	if project.CreateProjectSignal == true {
+		urlStr = fmt.Sprintf("%s%s%s", httpScheme, project.Endpoint, uri)
+	}
 	req, err := http.NewRequest(method, urlStr, reader)
 	if err != nil {
 		return nil, NewClientError(err)

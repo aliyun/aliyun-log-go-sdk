@@ -20,6 +20,7 @@ var RetryOnServerErrorEnabled = true
 
 var GlobalDebugLevel = 0
 
+
 // compress type
 const (
 	Compress_LZ4  = iota // 0
@@ -139,6 +140,7 @@ func (c *Client) CreateProject(name, description string) (*LogProject, error) {
 
 	uri := "/"
 	proj := convert(c, name)
+	proj.CreateProjectSignal = true
 	resp, err := request(proj, "POST", uri, h, body)
 	if err != nil {
 		return nil, err

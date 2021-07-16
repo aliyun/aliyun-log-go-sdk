@@ -47,6 +47,7 @@ type LogProject struct {
 	baseURL         string
 	retryTimeout    time.Duration
 	httpClient      *http.Client
+	CreateProjectSignal bool
 }
 
 // NewLogProject creates a new SLS project.
