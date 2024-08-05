@@ -38,6 +38,7 @@ type ResourceUnTags struct {
 	ResourceType string   `json:"resourceType"`
 	ResourceID   []string `json:"resourceId"`
 	Tags         []string `json:"tags"`
+	All          bool     `json:"all"`
 }
 
 // ResourceUnSystemTags system tag for untag sls resouce
@@ -87,6 +88,7 @@ func NewResourceUnTags(resourceType string, resourceId string, tags []string) *R
 		ResourceType: resourceType,
 		ResourceID:   []string{resourceId},
 		Tags:         tags,
+		All:          false,
 	}
 }
 
@@ -109,6 +111,7 @@ func NewResourceUnSystemTags(resourceType string, resourceId string, tagOwnerUid
 			ResourceType: resourceType,
 			ResourceID:   []string{resourceId},
 			Tags:         tags,
+			All:          false,
 		},
 		tagOwnerUid,
 	}
