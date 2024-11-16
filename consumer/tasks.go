@@ -15,7 +15,7 @@ func (consumer *ShardConsumerWorker) consumerInitializeTask() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if checkpoint != "" && err == nil {
+	if checkpoint != "" {
 		consumer.consumerCheckPointTracker.initCheckPoint(checkpoint)
 		return checkpoint, nil
 	}
@@ -45,23 +45,23 @@ func (consumer *ShardConsumerWorker) consumerInitializeTask() (string, error) {
 	return "", errors.New("CursorPositionError")
 }
 
-func (consumer *ShardConsumerWorker) nextFetchTask() error {
+func (consumer *ShardConsumerWorker) nextFetchTask() (hasProgress bool, err error) {
 	// update last fetch time, for control fetch frequency
 	consumer.lastFetchTime = time.Now()
-
-	logGroup, pullLogMeta, err := consumer.client.pullLogs(consumer.shardId, consumer.nextFetchCursor)
+	cursor := consumer.nextFetchCursor
+	logGroup, pullLogMeta, err := consumer.client.pullLogs(consumer.shardId, cursor)
 	if err != nil {
-		return err
+		return false, err
 	}
 	// set cursors user to decide whether to save according to the execution of `process`
 	consumer.consumerCheckPointTracker.setCurrentCursor(consumer.nextFetchCursor)
 	consumer.lastFetchLogGroupList = logGroup
 	consumer.nextFetchCursor = pullLogMeta.NextCursor
 	consumer.lastFetchRawSize = pullLogMeta.RawSize
-	consumer.lastFetchGroupCount = GetLogGroupCount(consumer.lastFetchLogGroupList)
+	consumer.lastFetchGroupCount = pullLogMeta.Count
 	if consumer.client.option.Query != "" {
 		consumer.lastFetchRawSizeBeforeQuery = pullLogMeta.RawSizeBeforeQuery
-		consumer.lastFetchGroupCountBeforeQuery = pullLogMeta.RawDataCountBeforeQuery
+		consumer.lastFetchGroupCountBeforeQuery = pullLogMeta.DataCountBeforeQuery
 		if consumer.lastFetchRawSizeBeforeQuery == -1 {
 			consumer.lastFetchRawSizeBeforeQuery = 0
 		}
@@ -74,13 +74,15 @@ func (consumer *ShardConsumerWorker) nextFetchTask() error {
 		"shardId", consumer.shardId,
 		"fetch log count", consumer.lastFetchGroupCount,
 	)
-	if consumer.lastFetchGroupCount == 0 {
+
+	// if cursor == nextCursor, no progress is needed
+	if cursor == pullLogMeta.NextCursor {
 		consumer.lastFetchLogGroupList = nil
-		// may no new data can be pulled, no process func can trigger checkpoint saving
 		consumer.saveCheckPointIfNeeded()
+		return false, nil
 	}
 
-	return nil
+	return true, nil
 }
 
 func (consumer *ShardConsumerWorker) consumerProcessTask() (rollBackCheckpoint string, err error) {
