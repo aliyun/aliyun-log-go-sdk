@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
+	"reflect"
 	"regexp"
 	"strings"
 	"time"
@@ -538,6 +540,153 @@ func (p *LogProject) DeleteMachineGroup(name string) (err error) {
 		return err
 	}
 
+	return nil
+}
+
+func (p *LogProject) CreateMetricConfig(metricStore string, metricConfig *MetricsConfig) error {
+	body, err := json.Marshal(metricConfig)
+	if err != nil {
+		return NewClientError(err)
+	}
+
+	jsonBody := map[string]interface{}{
+		"metricStore":         metricStore,
+		"metricsConfigDetail": string(body),
+	}
+	body, err = json.Marshal(jsonBody)
+	if err != nil {
+		return NewClientError(err)
+	}
+
+	h := map[string]string{
+		"x-log-bodyrawsize": fmt.Sprintf("%v", len(body)),
+		"Content-Type":      "application/json",
+		"Accept-Encoding":   "deflate", // TODO: support lz4
+	}
+	r, err := request(p, "POST", "/metricsconfigs", h, body)
+	if err != nil {
+		return NewClientError(err)
+	}
+	defer r.Body.Close()
+	body, err = ioutil.ReadAll(r.Body)
+	if err != nil {
+		return NewClientError(err)
+	}
+	if r.StatusCode != http.StatusOK {
+		err := new(Error)
+		if err := json.Unmarshal(body, err); err != nil {
+			return NewClientError(err)
+		}
+		return err
+	}
+	return nil
+}
+
+func (p *LogProject) DeleteMetricConfig(metricStore string) (err error) {
+	h := map[string]string{
+		"x-log-bodyrawsize": "0",
+	}
+	r, err := request(p, "DELETE", "/metricsconfigs/"+metricStore, h, nil)
+	if err != nil {
+		return NewClientError(err)
+	}
+	defer r.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return NewClientError(err)
+	}
+	if r.StatusCode != http.StatusOK {
+		err := new(Error)
+		if err := json.Unmarshal(body, err); err != nil {
+			return NewClientError(err)
+		}
+		return err
+	}
+	return nil
+}
+
+func (p *LogProject) GetMetricConfig(metricStore string) (*MetricsConfig, error) {
+	h := map[string]string{
+		"x-log-bodyrawsize": "0",
+	}
+	r, err := request(p, "GET", "/metricsconfigs/"+metricStore, h, nil)
+	if err != nil {
+		return nil, NewClientError(err)
+	}
+	defer r.Body.Close()
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, NewClientError(err)
+	}
+	if r.StatusCode != http.StatusOK {
+		err := new(Error)
+		if err := json.Unmarshal(buf, err); err != nil {
+			return nil, NewClientError(err)
+		}
+		return nil, err
+	}
+
+	type OuterJSON struct {
+		MetricStore         string `json:"metricStore"`
+		MetricsConfigDetail string `json:"metricsConfigDetail"`
+	}
+	var outerData OuterJSON
+	if err := json.Unmarshal(buf, &outerData); err != nil {
+		log.Fatalf("Error parsing outer JSON: %v", err)
+	}
+
+	m := &MetricsConfig{}
+	err = json.Unmarshal([]byte(outerData.MetricsConfigDetail), m)
+	if err != nil {
+		return nil, err
+	}
+	if IsDebugLevelMatched(4) {
+		level.Info(Logger).Log("msg", "Get MetricConfig config, result", *m)
+	}
+
+	if reflect.DeepEqual(m, MetricsConfig{}) {
+		fmt.Println("MetricsConfig is empty")
+	}
+
+	return m, err
+}
+
+func (p *LogProject) UpdateMetricConfig(metricStore string, metricConfig *MetricsConfig) (err error) {
+	body, err := json.Marshal(metricConfig)
+	if err != nil {
+		return NewClientError(err)
+	}
+	jsonBody := map[string]interface{}{
+		"metricStore":         metricStore,
+		"metricsConfigDetail": string(body),
+	}
+	body, err = json.Marshal(jsonBody)
+	if err != nil {
+		return NewClientError(err)
+	}
+
+	h := map[string]string{
+		"x-log-bodyrawsize": fmt.Sprintf("%v", len(body)),
+		"Content-Type":      "application/json",
+		"Accept-Encoding":   "deflate", // TODO: support lz4
+	}
+	r, err := request(p, "PUT", "/metricsconfigs/"+metricStore, h, body)
+	if err != nil {
+		return NewClientError(err)
+	}
+	defer r.Body.Close()
+	body, err = ioutil.ReadAll(r.Body)
+	if err != nil {
+		return NewClientError(err)
+	}
+
+	if r.StatusCode != http.StatusOK {
+		err := new(Error)
+		if err := json.Unmarshal(body, err); err != nil {
+			return NewClientError(err)
+		}
+		return err
+	}
 	return nil
 }
 
