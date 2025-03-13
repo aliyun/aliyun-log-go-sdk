@@ -53,8 +53,7 @@ func main() {
 		Name:        alertName,
 		DisplayName: "count monitoring",
 		Description: "",
-		State:       "Enabled",
-		Status:      "",
+		Status:      "ENABLED",
 		Configuration: &sls.AlertConfiguration{
 			Condition: "count > 0",
 			Dashboard: dashboardName,

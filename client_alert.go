@@ -158,7 +158,7 @@ type Alert struct {
 	Name             string              `json:"name"`
 	DisplayName      string              `json:"displayName"`
 	Description      string              `json:"description"`
-	State            string              `json:"state"`
+	State            string              `json:"state"` // Deprecated: use `Status` instead
 	Status           string              `json:"status"`
 	Configuration    *AlertConfiguration `json:"configuration"`
 	Schedule         *Schedule           `json:"schedule"`

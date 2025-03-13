@@ -74,7 +74,7 @@ func (s *AlertTestSuite) createAlert() error {
 	}
 	alert := &Alert{
 		Name:        s.alertName,
-		State:       "Enabled",
+		Status:      "ENABLED",
 		DisplayName: "AlertTest By GO SDK",
 		Description: "Description for alert",
 		Schedule: &Schedule{
@@ -130,7 +130,7 @@ func (s *AlertTestSuite) createAlert2() error {
 	}
 	alert := &Alert{
 		Name:        s.alertName,
-		State:       "Enabled",
+		Status:      "ENABLED",
 		DisplayName: "AlertTest By GO SDK ",
 		Description: "Description for alert by go sdk",
 		Schedule: &Schedule{
@@ -303,12 +303,12 @@ func (s *AlertTestSuite) TestClient_DisableAndEnableAlert() {
 	s.Require().Nil(err)
 	alert, err := s.client.GetAlert(s.projectName, s.alertName)
 	s.Require().Nil(err)
-	s.Require().Equal("Disabled", alert.State, "disable alert failed")
+	s.Require().Equal("DISABLED", alert.Status, "disable alert failed")
 	err = s.client.EnableAlert(s.projectName, s.alertName)
 	s.Require().Nil(err)
 	alert, err = s.client.GetAlert(s.projectName, s.alertName)
 	s.Require().Nil(err)
-	s.Require().Equal("Enabled", alert.State, "enable alert failed")
+	s.Require().Equal("ENABLED", alert.Status, "enable alert failed")
 	err = s.client.DeleteAlert(s.projectName, s.alertName)
 	s.Require().Nil(err)
 }
@@ -320,12 +320,12 @@ func (s *AlertTestSuite) TestClient_DisableAndEnableAlert2() {
 	s.Require().Nil(err)
 	alert, err := s.client.GetAlert(s.projectName, s.alertName)
 	s.Require().Nil(err)
-	s.Require().Equal("Disabled", alert.State, "disable alert failed")
+	s.Require().Equal("DISABLED", alert.Status, "disable alert failed")
 	err = s.client.EnableAlert(s.projectName, s.alertName)
 	s.Require().Nil(err)
 	alert, err = s.client.GetAlert(s.projectName, s.alertName)
 	s.Require().Nil(err)
-	s.Require().Equal("Enabled", alert.State, "enable alert failed")
+	s.Require().Equal("ENABLED", alert.Status, "enable alert failed")
 	err = s.client.DeleteAlert(s.projectName, s.alertName)
 	s.Require().Nil(err)
 }
