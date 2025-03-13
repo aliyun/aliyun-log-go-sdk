@@ -155,15 +155,20 @@ type SinkAlerthubConfiguration struct {
 }
 
 type Alert struct {
-	Name             string              `json:"name"`
-	DisplayName      string              `json:"displayName"`
-	Description      string              `json:"description"`
-	State            string              `json:"state"` // Deprecated: use `Status` instead
+	Name        string `json:"name"`
+	DisplayName string `json:"displayName"`
+	Description string `json:"description"`
+	// Deprecated: use `alert.IsEnabled()` to get the status, use api EnableAlert and DisableAlert to enable/disable the alert
+	State            string              `json:"state"`
 	Status           string              `json:"status"`
 	Configuration    *AlertConfiguration `json:"configuration"`
 	Schedule         *Schedule           `json:"schedule"`
 	CreateTime       int64               `json:"createTime,omitempty"`
 	LastModifiedTime int64               `json:"lastModifiedTime,omitempty"`
+}
+
+func (alert *Alert) IsEnabled() bool {
+	return alert.Status == "ENABLED"
 }
 
 func (alert *Alert) MarshalJSON() ([]byte, error) {
