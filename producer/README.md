@@ -43,7 +43,7 @@ producer同时提供了简单的使用代码simple:([producer_simple_demo](https
 ```go langgo l
 producerConfig := producer.GetDefaultProducerConfig()
 producerConfig.Endpoint = os.Getenv("Endpoint")
-provider := sls.NewStaticCredentailsProvider(os.Getenv("AccessKeyID"), os.Getenv("AccessKeySecret"), "")
+provider := sls.NewStaticCredentialsProvider(os.Getenv("AccessKeyID"), os.Getenv("AccessKeySecret"), "")
 producerConfig.CredentialsProvider = provider
 producerInstance,err := producer.NewProducer(producerConfig)
 if err != nil {
