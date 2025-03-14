@@ -159,8 +159,8 @@ type Alert struct {
 	DisplayName string `json:"displayName"`
 	Description string `json:"description"`
 	// Deprecated: use `alert.IsEnabled()` to get the status, use api EnableAlert and DisableAlert to enable/disable the alert
-	State            string              `json:"state"`
-	Status           string              `json:"status"`
+	State            string              `json:"state,omitempty"`
+	Status           string              `json:"status,omitempty"`
 	Configuration    *AlertConfiguration `json:"configuration"`
 	Schedule         *Schedule           `json:"schedule"`
 	CreateTime       int64               `json:"createTime,omitempty"`
