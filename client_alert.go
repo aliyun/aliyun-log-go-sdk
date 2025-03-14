@@ -176,11 +176,15 @@ func (alert *Alert) MarshalJSON() ([]byte, error) {
 		"name":          alert.Name,
 		"displayName":   alert.DisplayName,
 		"description":   alert.Description,
-		"state":         alert.State,
-		"status":        alert.Status,
 		"configuration": alert.Configuration,
 		"schedule":      alert.Schedule,
 		"type":          "Alert",
+	}
+	if alert.State != "" {
+		body["state"] = alert.State
+	}
+	if alert.Status != "" {
+		body["status"] = alert.Status
 	}
 	return json.Marshal(body)
 }
