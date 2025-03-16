@@ -441,6 +441,46 @@ func (c *TokenAutoUpdateClient) DeleteMachineGroup(project string, machineGroup 
 	return
 }
 
+func (c *TokenAutoUpdateClient) CreateMetricConfig(project string, metricStore string, metricConfig *MetricsConfig) (err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		err = c.logClient.CreateMetricConfig(project, metricStore, metricConfig)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
+func (c *TokenAutoUpdateClient) DeleteMetricConfig(project string, metricStore string) (err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		err = c.logClient.DeleteMetricConfig(project, metricStore)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
+func (c *TokenAutoUpdateClient) GetMetricConfig(project string, metricStore string) (metricConfig *MetricsConfig, err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		metricConfig, err = c.logClient.GetMetricConfig(project, metricStore)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
+func (c *TokenAutoUpdateClient) UpdateMetricConfig(project string, metricStore string, metricConfig *MetricsConfig) (err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		err = c.logClient.UpdateMetricConfig(project, metricStore, metricConfig)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
 func (c *TokenAutoUpdateClient) ListConfig(project string, offset, size int) (cfgNames []string, total int, err error) {
 	for i := 0; i < c.maxTryTimes; i++ {
 		cfgNames, total, err = c.logClient.ListConfig(project, offset, size)

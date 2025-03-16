@@ -204,6 +204,15 @@ type ClientInterface interface {
 	UpdateMachineGroup(project string, m *MachineGroup) (err error)
 	// DeleteMachineGroup deletes machine group according machine group name.
 	DeleteMachineGroup(project string, machineGroup string) (err error)
+
+	CreateMetricConfig(project string, metricStore string, metricConfig *MetricsConfig) error
+
+	DeleteMetricConfig(project string, metricStore string) error
+
+	UpdateMetricConfig(project string, metricStore string, metricConfig *MetricsConfig) error
+
+	GetMetricConfig(project string, metricStore string) (*MetricsConfig, error)
+
 	// ListConfig returns config names list and the total number of configs.
 	// The offset starts from 0 and the size is the max number of configs could be returned.
 	ListConfig(project string, offset, size int) (cfgNames []string, total int, err error)

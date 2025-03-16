@@ -210,6 +210,26 @@ func (c *Client) DeleteMachineGroup(project string, machineGroup string) (err er
 	return proj.DeleteMachineGroup(machineGroup)
 }
 
+func (c *Client) CreateMetricConfig(project string, metricStore string, metricConfig *MetricsConfig) error {
+	proj := convert(c, project)
+	return proj.CreateMetricConfig(metricStore, metricConfig)
+}
+
+func (c *Client) DeleteMetricConfig(project string, metricStore string) error {
+	proj := convert(c, project)
+	return proj.DeleteMetricConfig(metricStore)
+}
+
+func (c *Client) GetMetricConfig(project string, metricStore string) (*MetricsConfig, error) {
+	proj := convert(c, project)
+	return proj.GetMetricConfig(metricStore)
+}
+
+func (c *Client) UpdateMetricConfig(project string, metricStore string, metricConfig *MetricsConfig) error {
+	proj := convert(c, project)
+	return proj.UpdateMetricConfig(metricStore, metricConfig)
+}
+
 // ListConfig returns config names list and the total number of configs.
 // The offset starts from 0 and the size is the max number of configs could be returned.
 func (c *Client) ListConfig(project string, offset, size int) (cfgNames []string, total int, err error) {
