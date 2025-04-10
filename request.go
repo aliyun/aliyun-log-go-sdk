@@ -191,7 +191,7 @@ func realRequest(ctx context.Context, project *LogProject, method, uri string, h
 		}
 	}
 
-	for k, v := range project.InnerHeaders {
+	for k, v := range project.innerHeaders {
 		headers[k] = v
 	}
 	var signer Signer
@@ -208,7 +208,7 @@ func realRequest(ctx context.Context, project *LogProject, method, uri string, h
 		return nil, err
 	}
 
-	addHeadersAfterSign(project.CommonHeaders, headers)
+	addHeadersAfterSign(project.commonHeaders, headers)
 
 	// Initialize http request
 	reader := bytes.NewReader(body)

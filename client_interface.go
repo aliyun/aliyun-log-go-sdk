@@ -8,13 +8,12 @@ import (
 )
 
 // CreateNormalInterface create a normal client.
-//
-// Deprecated: use CreateNormalInterfaceV2 instead.
+// Prefer to use CreateNormalInterfaceV2 instead.
 // If you keep using long-lived AccessKeyID and AccessKeySecret,
 // use the example code below.
 //
-//	  provider := NewStaticCredentialsProvider(accessKeyID, accessKeySecret, securityToken)
-//		client := CreateNormalInterfaceV2(endpoint, provider)
+//	provider := NewStaticCredentialsProvider(accessKeyID, accessKeySecret, securityToken)
+//	client := CreateNormalInterfaceV2(endpoint, provider)
 func CreateNormalInterface(endpoint, accessKeyID, accessKeySecret, securityToken string) ClientInterface {
 	client := &Client{
 		Endpoint:        endpoint,
