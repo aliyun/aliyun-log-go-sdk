@@ -27,32 +27,35 @@ type Producer struct {
 	buckets               int
 	logger                log.Logger
 	producerLogGroupSize  int64
+	monitor               *ProducerMonitor
 }
 
-func InitProducer(producerConfig *ProducerConfig) *Producer {
-	logger := logConfig(producerConfig)
+func NewProducer(producerConfig *ProducerConfig) (*Producer, error) {
+	logger := getProducerLogger(producerConfig)
+	finalProducerConfig := validateProducerConfig(producerConfig, logger)
 
-	client, err := createClient(producerConfig)
+	client, err := createClient(finalProducerConfig, false, logger)
 	if err != nil {
-		level.Warn(logger).Log("msg", "Failed to create ststoken client, use default client without ststoken.", "error", err)
+		return nil, err
 	}
-	if producerConfig.Region != "" {
-		client.SetRegion(producerConfig.Region)
-	}
-	if producerConfig.AuthVersion != "" {
-		client.SetAuthVersion(producerConfig.AuthVersion)
-	}
-	if producerConfig.HTTPClient != nil {
-		client.SetHTTPClient(producerConfig.HTTPClient)
-	}
-	if producerConfig.UserAgent != "" {
-		client.SetUserAgent(producerConfig.UserAgent)
-	}
-	finalProducerConfig := validateProducerConfig(producerConfig)
+	return createProducerInternal(client, finalProducerConfig, logger), nil
+}
+
+// Deprecated: use NewProducer instead.
+func InitProducer(producerConfig *ProducerConfig) *Producer {
+	logger := getProducerLogger(producerConfig)
+	finalProducerConfig := validateProducerConfig(producerConfig, logger)
+
+	client, _ := createClient(finalProducerConfig, true, logger)
+	return createProducerInternal(client, finalProducerConfig, logger)
+}
+
+func createProducerInternal(client sls.ClientInterface, finalProducerConfig *ProducerConfig, logger log.Logger) *Producer {
+	configureClient(client, finalProducerConfig)
 	retryQueue := initRetryQueue()
 	errorStatusMap := func() map[int]*string {
 		errorCodeMap := map[int]*string{}
-		for _, v := range producerConfig.NoRetryStatusCodeList {
+		for _, v := range finalProducerConfig.NoRetryStatusCodeList {
 			errorCodeMap[int(v)] = nil
 		}
 		return errorCodeMap
@@ -73,25 +76,45 @@ func InitProducer(producerConfig *ProducerConfig) *Producer {
 	producer.ioWorkerWaitGroup = &sync.WaitGroup{}
 	producer.ioThreadPoolWaitGroup = &sync.WaitGroup{}
 	producer.logger = logger
+	producer.monitor = newProducerMonitor()
 	return producer
 }
 
-func createClient(producerConfig *ProducerConfig) (sls.ClientInterface, error) {
+func configureClient(client sls.ClientInterface, producerConfig *ProducerConfig) {
+	if producerConfig.Region != "" {
+		client.SetRegion(producerConfig.Region)
+	}
+	if producerConfig.AuthVersion != "" {
+		client.SetAuthVersion(producerConfig.AuthVersion)
+	}
+	if producerConfig.HTTPClient != nil {
+		client.SetHTTPClient(producerConfig.HTTPClient)
+	}
+	if producerConfig.UserAgent != "" {
+		client.SetUserAgent(producerConfig.UserAgent)
+	}
+}
+
+func createClient(producerConfig *ProducerConfig, allowStsFallback bool, logger log.Logger) (sls.ClientInterface, error) {
 	// use CredentialsProvider
 	if producerConfig.CredentialsProvider != nil {
 		return sls.CreateNormalInterfaceV2(producerConfig.Endpoint, producerConfig.CredentialsProvider), nil
 	}
 	// use UpdateStsTokenFunc
 	if producerConfig.UpdateStsToken != nil && producerConfig.StsTokenShutDown != nil {
-		return sls.CreateTokenAutoUpdateClient(producerConfig.Endpoint, producerConfig.UpdateStsToken, producerConfig.StsTokenShutDown)
+		client, err := sls.CreateTokenAutoUpdateClient(producerConfig.Endpoint, producerConfig.UpdateStsToken, producerConfig.StsTokenShutDown)
+		if err == nil || !allowStsFallback {
+			return client, err
+		}
+		// for backward compatibility
+		level.Warn(logger).Log("msg", "Failed to create ststoken client, use default client without ststoken.", "error", err)
 	}
 	// fallback to default static long-lived AK
 	staticProvider := sls.NewStaticCredentialsProvider(producerConfig.AccessKeyID, producerConfig.AccessKeySecret, "")
 	return sls.CreateNormalInterfaceV2(producerConfig.Endpoint, staticProvider), nil
 }
 
-func validateProducerConfig(producerConfig *ProducerConfig) *ProducerConfig {
-	logger := logConfig(producerConfig)
+func validateProducerConfig(producerConfig *ProducerConfig, logger log.Logger) *ProducerConfig {
 	if producerConfig.MaxReservedAttempts <= 0 {
 		level.Warn(logger).Log("msg", "This MaxReservedAttempts parameter must be greater than zero,program auto correction to default value")
 		producerConfig.MaxReservedAttempts = 11
@@ -216,35 +239,47 @@ func (producer *Producer) SendLogListWithCallBack(project, logstore, topic, sour
 
 }
 
+// todo: refactor this
 func (producer *Producer) waitTime() error {
+	if atomic.LoadInt64(&producer.producerLogGroupSize) <= producer.producerConfig.TotalSizeLnBytes {
+		return nil
+	}
 
-	if producer.producerConfig.MaxBlockSec > 0 {
-		for i := 0; i < producer.producerConfig.MaxBlockSec; i++ {
-
-			if atomic.LoadInt64(&producer.producerLogGroupSize) > producer.producerConfig.TotalSizeLnBytes {
-				time.Sleep(time.Second)
-			} else {
-				return nil
-			}
-		}
-		level.Error(producer.logger).Log("msg", "Over producer set maximum blocking time")
-		return errors.New(TimeoutExecption)
-	} else if producer.producerConfig.MaxBlockSec == 0 {
+	// no wait
+	if producer.producerConfig.MaxBlockSec == 0 {
 		if atomic.LoadInt64(&producer.producerLogGroupSize) > producer.producerConfig.TotalSizeLnBytes {
 			level.Error(producer.logger).Log("msg", "Over producer set maximum blocking time")
 			return errors.New(TimeoutExecption)
 		}
-	} else if producer.producerConfig.MaxBlockSec < 0 {
-		for {
-			if atomic.LoadInt64(&producer.producerLogGroupSize) > producer.producerConfig.TotalSizeLnBytes {
-				time.Sleep(time.Second)
-			} else {
-				return nil
-			}
+		return nil
+	}
+
+	defer producer.monitor.recordWaitMemory(time.Now())
+
+	// infinite wait
+	if producer.producerConfig.MaxBlockSec < 0 {
+		for atomic.LoadInt64(&producer.producerLogGroupSize) > producer.producerConfig.TotalSizeLnBytes {
+			time.Sleep(waitTimeUnit)
+		}
+		return nil
+	}
+
+	// todo: refine this, limited wait
+	for i := 0; i < producer.producerConfig.MaxBlockSec*waitUnitPerSec; i++ {
+		if atomic.LoadInt64(&producer.producerLogGroupSize) > producer.producerConfig.TotalSizeLnBytes {
+			time.Sleep(waitTimeUnit)
+		} else {
+			return nil
 		}
 	}
-	return nil
+
+	producer.monitor.incWaitMemoryFail()
+	level.Error(producer.logger).Log("msg", "Over producer set maximum blocking time")
+	return errors.New(TimeoutExecption)
 }
+
+const waitTimeUnit = time.Millisecond * 10
+const waitUnitPerSec = int(time.Second / waitTimeUnit)
 
 func (producer *Producer) Start() {
 	producer.moverWaitGroup.Add(1)
@@ -252,6 +287,9 @@ func (producer *Producer) Start() {
 	go producer.mover.run(producer.moverWaitGroup, producer.producerConfig)
 	producer.ioThreadPoolWaitGroup.Add(1)
 	go producer.threadPool.start(producer.ioWorkerWaitGroup, producer.ioThreadPoolWaitGroup)
+	if !producer.producerConfig.DisableRuntimeMetrics {
+		go producer.monitor.reportThread(time.Minute, producer.logger)
+	}
 }
 
 // Limited closing transfer parameter nil, safe closing transfer timeout time, timeout Ms parameter in milliseconds
@@ -259,26 +297,25 @@ func (producer *Producer) Close(timeoutMs int64) error {
 	startCloseTime := time.Now()
 	producer.sendCloseProdcerSignal()
 	producer.moverWaitGroup.Wait()
-	producer.threadPool.threadPoolShutDownFlag.Store(true)
-	for {
-		if atomic.LoadInt64(&producer.mover.ioWorker.taskCount) == 0 && !producer.threadPool.hasTask() {
-			level.Info(producer.logger).Log("msg", "All groutines of producer have been shutdown")
-			return nil
-		}
+	producer.threadPool.ShutDown()
+	for !producer.threadPool.Stopped() {
 		if time.Since(startCloseTime) > time.Duration(timeoutMs)*time.Millisecond {
 			level.Warn(producer.logger).Log("msg", "The producer timeout closes, and some of the cached data may not be sent properly")
 			return errors.New(TimeoutExecption)
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
-
+	level.Info(producer.logger).Log("msg", "All groutines of producer have been shutdown")
+	return nil
 }
 
 func (producer *Producer) SafeClose() {
 	producer.sendCloseProdcerSignal()
 	producer.moverWaitGroup.Wait()
-	producer.threadPool.threadPoolShutDownFlag.Store(true)
+	level.Info(producer.logger).Log("msg", "Mover close finish")
+	producer.threadPool.ShutDown()
 	producer.ioThreadPoolWaitGroup.Wait()
+	level.Info(producer.logger).Log("msg", "IoThreadPool close finish")
 	producer.ioWorkerWaitGroup.Wait()
 	level.Info(producer.logger).Log("msg", "Producer close finish")
 }

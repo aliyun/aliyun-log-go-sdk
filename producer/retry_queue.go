@@ -36,7 +36,7 @@ func (retryQueue *RetryQueue) getRetryBatch(moverShutDownFlag bool) (producerBat
 	if !moverShutDownFlag {
 		for retryQueue.Len() > 0 {
 			producerBatch := heap.Pop(retryQueue)
-			if producerBatch.(*ProducerBatch).nextRetryMs < GetTimeMs(time.Now().UnixNano()) {
+			if producerBatch.(*ProducerBatch).nextRetryMs < time.Now().UnixMilli() {
 				producerBatchList = append(producerBatchList, producerBatch.(*ProducerBatch))
 			} else {
 				heap.Push(retryQueue, producerBatch.(*ProducerBatch))
@@ -70,6 +70,7 @@ func (retryQueue *RetryQueue) Pop() interface{} {
 	old := retryQueue.batch
 	n := len(old)
 	item := old[n-1]
+	old[n-1] = nil
 	retryQueue.batch = old[0 : n-1]
 	return item
 }

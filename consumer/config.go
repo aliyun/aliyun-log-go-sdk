@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	sls "github.com/aliyun/aliyun-log-go-sdk"
+	"github.com/go-kit/kit/log"
 )
 
 type LogHubConfig struct {
@@ -33,6 +34,7 @@ type LogHubConfig struct {
 	// 	default False, during consuption, when shard is splitted,
 	// 	if need to consume the newly splitted shard after its parent shard (read-only) is finished consumption or not.
 	// 	suggest keep it as False (don't care) until you have good reasion for it.
+	//:param Logger: default nil, optional. This logger is used to record consumer's status. The parameters AllowLogLevel, LogFileName, LogMaxSize, LogMaxBackups, LogCompass are only used when Logger is not nil.
 	//:param AllowLogLevel: default info,optional: debug,info,warn,error
 	//:param LogFileName: Setting Log File Path，for example "/root/log/log_file.log",default
 	//:param IsJsonType: Set whether the log output type is JSON，default false.
@@ -49,6 +51,8 @@ type LogHubConfig struct {
 	//:param AutoCommitIntervalInSec: default auto commit interval, default is 30
 	//:param AuthVersion: signature algorithm version, default is sls.AuthV1
 	//:param Region: region of sls endpoint, eg. cn-hangzhou, region must be set if AuthVersion is sls.AuthV4
+	//:param DisableRuntimeMetrics: disable runtime metrics, runtime metrics prints to local log.
+	//::param MaxIoWorkers: max io workers, default is 50. Smaller io workers will reduce memory usage, but may reduce throughput.
 	Endpoint                  string
 	AccessKeyID               string
 	AccessKeySecret           string
@@ -65,6 +69,7 @@ type LogHubConfig struct {
 	MaxFetchLogGroupCount     int
 	CursorStartTime           int64 // Unix time stamp; Units are seconds.
 	InOrder                   bool
+	Logger                    log.Logger
 	AllowLogLevel             string
 	LogFileName               string
 	IsJsonType                bool
@@ -78,6 +83,8 @@ type LogHubConfig struct {
 	AutoCommitIntervalInMS    int64
 	AuthVersion               sls.AuthVersionType
 	Region                    string
+	DisableRuntimeMetrics     bool
+	MaxIoWorkers              int
 }
 
 const (
@@ -93,3 +100,5 @@ const (
 	SHUTTING_DOWN     = "SHUTTING_DOWN"
 	SHUTDOWN_COMPLETE = "SHUTDOWN_COMPLETE"
 )
+
+const defaultMaxIoWorkers = 50

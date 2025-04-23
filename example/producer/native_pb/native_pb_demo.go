@@ -17,19 +17,10 @@ func main() {
 	producerConfig.Endpoint = os.Getenv("Endpoint")
 	producerConfig.AccessKeyID = os.Getenv("AccessKeyID")
 	producerConfig.AccessKeySecret = os.Getenv("AccessKeySecret")
-	// if you want to use log context, set generate pack id true
-	producerConfig.GeneratePackId = true
-	producerConfig.LogTags = []*sls.LogTag{
-		&sls.LogTag{
-			Key:   proto.String("tag_1"),
-			Value: proto.String("value_1"),
-		},
-		&sls.LogTag{
-			Key:   proto.String("tag_2"),
-			Value: proto.String("value_2"),
-		},
+	producerInstance, err := producer.NewProducer(producerConfig)
+	if err != nil {
+		panic(err)
 	}
-	producerInstance := producer.InitProducer(producerConfig)
 	ch := make(chan os.Signal)
 	signal.Notify(ch, os.Kill, os.Interrupt)
 	producerInstance.Start()
@@ -41,8 +32,17 @@ func main() {
 			for i := 0; i < 1000; i++ {
 				// GenerateLog  is producer's function for generating SLS format logs
 				// GenerateLog has low performance, and native Log interface is the best choice for high performance.
-				log := producer.GenerateLog(uint32(time.Now().Unix()), map[string]string{"content": "test", "content2": fmt.Sprintf("%v", i)})
-				err := producerInstance.SendLog("log-project", "log-store", "topic", "127.0.0.1", log)
+				content := []*sls.LogContent{}
+				content = append(content, &sls.LogContent{
+					Key:   proto.String("pb_test"),
+					Value: proto.String("pb_value"),
+				})
+				log := &sls.Log{
+					Time:     proto.Uint32(uint32(time.Now().Unix())),
+					Contents: content,
+				}
+
+				err := producerInstance.SendLog("project", "logstrore", "127.0.0.1", "topic", log)
 				if err != nil {
 					fmt.Println(err)
 				}

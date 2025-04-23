@@ -1,8 +1,8 @@
 package consumerLibrary
 
 import (
-	"os"
 	"io"
+	"os"
 	"sync"
 	"time"
 
@@ -21,6 +21,7 @@ type ConsumerWorker struct {
 	processor          Processor
 	waitGroup          sync.WaitGroup
 	Logger             log.Logger
+	ioThrottler        ioThrottler
 }
 
 // depreciated: this old logic is to automatically save to memory, and then commit at a fixed time
@@ -53,7 +54,15 @@ func InitConsumerWorkerWithCheckpointTracker(option LogHubConfig, do func(int, *
 // InitConsumerWorkerWithProcessor
 // you need save checkpoint by yourself and can do something after consumer shutdown
 func InitConsumerWorkerWithProcessor(option LogHubConfig, processor Processor) *ConsumerWorker {
-	logger := logConfig(option)
+	logger := option.Logger
+	if logger == nil {
+		logger = logConfig(option)
+	}
+	maxIoWorker := defaultMaxIoWorkers
+	if option.MaxIoWorkers > 0 {
+		maxIoWorker = option.MaxIoWorkers
+	}
+
 	consumerClient := initConsumerClient(option, logger)
 	consumerHeatBeat := initConsumerHeatBeat(consumerClient, logger)
 	consumerWorker := &ConsumerWorker{
@@ -61,8 +70,9 @@ func InitConsumerWorkerWithProcessor(option LogHubConfig, processor Processor) *
 		client:             consumerClient,
 		workerShutDownFlag: atomic.NewBool(false),
 		//shardConsumer:      make(map[int]*ShardConsumerWorker),
-		processor: processor,
-		Logger:    logger,
+		processor:   processor,
+		Logger:      logger,
+		ioThrottler: newSimpleIoThrottler(maxIoWorker),
 	}
 	if err := consumerClient.createConsumerGroup(); err != nil {
 		level.Error(consumerWorker.Logger).Log(
@@ -99,7 +109,10 @@ func (consumerWorker *ConsumerWorker) run() {
 				break
 			}
 			shardConsumer := consumerWorker.getShardConsumer(shard)
-			shardConsumer.consume()
+			shardConsumer.ensureStarted()
+			if shardConsumer.shouldReportMetrics() {
+				shardConsumer.reportMetrics()
+			}
 		}
 		consumerWorker.cleanShardConsumer(heldShards)
 		TimeToSleepInMillsecond(consumerWorker.client.option.DataFetchIntervalInMs, lastFetchTime, consumerWorker.workerShutDownFlag.Load())
@@ -117,8 +130,8 @@ func (consumerWorker *ConsumerWorker) shutDownAndWait() {
 			func(key, value interface{}) bool {
 				count++
 				consumer := value.(*ShardConsumerWorker)
-				if !consumer.isShutDownComplete() {
-					consumer.consumerShutDown()
+				if !consumer.isStopped() {
+					consumer.shutdown()
 				} else {
 					consumerWorker.shardConsumer.Delete(key)
 				}
@@ -137,7 +150,12 @@ func (consumerWorker *ConsumerWorker) getShardConsumer(shardId int) *ShardConsum
 	if ok {
 		return consumer.(*ShardConsumerWorker)
 	}
-	consumerIns := initShardConsumerWorker(shardId, consumerWorker.client, consumerWorker.consumerHeatBeat, consumerWorker.processor, consumerWorker.Logger)
+	consumerIns := newShardConsumerWorker(shardId,
+		consumerWorker.client,
+		consumerWorker.consumerHeatBeat,
+		consumerWorker.processor,
+		consumerWorker.Logger,
+		consumerWorker.ioThrottler)
 	consumerWorker.shardConsumer.Store(shardId, consumerIns)
 	return consumerIns
 
@@ -152,11 +170,11 @@ func (consumerWorker *ConsumerWorker) cleanShardConsumer(owned_shards []int) {
 
 			if !Contain(shard, owned_shards) {
 				level.Info(consumerWorker.Logger).Log("msg", "try to call shut down for unassigned consumer shard", "shardId", shard)
-				consumer.consumerShutDown()
+				consumer.shutdown()
 				level.Info(consumerWorker.Logger).Log("msg", "Complete call shut down for unassigned consumer shard", "shardId", shard)
 			}
 
-			if consumer.isShutDownComplete() {
+			if consumer.isStopped() {
 				isDeleteShard := consumerWorker.consumerHeatBeat.removeHeartShard(shard)
 				if isDeleteShard {
 					level.Info(consumerWorker.Logger).Log("msg", "Remove an assigned consumer shard", "shardId", shard)
@@ -209,4 +227,25 @@ func logConfig(option LogHubConfig) log.Logger {
 	}
 	logger = log.With(logger, "time", log.DefaultTimestampUTC, "caller", log.DefaultCaller)
 	return logger
+}
+
+type ioThrottler interface {
+	Acquire()
+	Release()
+}
+
+type simpleIoThrottler struct {
+	chance chan struct{}
+}
+
+func newSimpleIoThrottler(maxIoWorkers int) *simpleIoThrottler {
+	return &simpleIoThrottler{
+		chance: make(chan struct{}, maxIoWorkers),
+	}
+}
+func (t *simpleIoThrottler) Acquire() {
+	t.chance <- struct{}{}
+}
+func (t *simpleIoThrottler) Release() {
+	<-t.chance
 }

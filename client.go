@@ -120,6 +120,19 @@ type Client struct {
 	InnerHeaders  map[string]string
 }
 
+// repeated calls only create one http client
+func (c *Client) initHttpClient() {
+	if c.RequestTimeOut == 0 {
+		c.RequestTimeOut = defaultRequestTimeout
+	}
+	if c.RetryTimeOut == 0 {
+		c.RetryTimeOut = defaultRetryTimeout
+	}
+	if c.HTTPClient == nil {
+		c.HTTPClient = newDefaultHTTPClient(c.RequestTimeOut)
+	}
+}
+
 func convert(c *Client, projName string) *LogProject {
 	c.accessKeyLock.RLock()
 	defer c.accessKeyLock.RUnlock()
@@ -127,6 +140,7 @@ func convert(c *Client, projName string) *LogProject {
 }
 
 func convertLocked(c *Client, projName string) *LogProject {
+	c.initHttpClient()
 	var p *LogProject
 	if c.credentialsProvider != nil {
 		p, _ = NewLogProjectV2(projName, c.Endpoint, c.credentialsProvider)
@@ -138,18 +152,10 @@ func convertLocked(c *Client, projName string) *LogProject {
 	p.UserAgent = c.UserAgent
 	p.AuthVersion = c.AuthVersion
 	p.Region = c.Region
-	p.CommonHeaders = c.CommonHeaders
-	p.InnerHeaders = c.InnerHeaders
-	if c.HTTPClient != nil {
-		p.httpClient = c.HTTPClient
-	}
-	if c.RequestTimeOut != time.Duration(0) {
-		p.WithRequestTimeout(c.RequestTimeOut)
-	}
-	if c.RetryTimeOut != time.Duration(0) {
-		p.WithRetryTimeout(c.RetryTimeOut)
-	}
-
+	p.commonHeaders = c.CommonHeaders
+	p.innerHeaders = c.InnerHeaders
+	p.httpClient = c.HTTPClient
+	p.retryTimeout = c.RetryTimeOut
 	return p
 }
 

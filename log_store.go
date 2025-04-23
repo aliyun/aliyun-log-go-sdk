@@ -13,27 +13,11 @@ import (
 
 	"github.com/go-kit/kit/log/level"
 	"github.com/gogo/protobuf/proto"
-	"github.com/klauspost/compress/zstd"
-	"github.com/pierrec/lz4"
+	"github.com/pierrec/lz4/v4"
 )
 
 // this file is deprecated and no maintenance
 // see client_logstore.go
-
-var (
-	zstdReader = newZstdReader()
-	zstdWriter = newZstdWriter()
-)
-
-func newZstdReader() *zstd.Decoder {
-	r, _ := zstd.NewReader(nil)
-	return r
-}
-
-func newZstdWriter() *zstd.Encoder {
-	w, _ := zstd.NewWriter(nil, zstd.WithEncoderLevel(zstd.SpeedDefault))
-	return w
-}
 
 // LogStore defines LogStore struct
 type LogStore struct {
@@ -185,7 +169,7 @@ func (s *LogStore) PutRawLog(rawLogData []byte) (err error) {
 		}
 		outLen = n
 	case Compress_ZSTD:
-		out = zstdWriter.EncodeAll(rawLogData, nil)
+		out, _ = slsZstdCompressor.Compress(rawLogData, nil)
 		h = map[string]string{
 			"x-log-compresstype": "zstd",
 			"x-log-bodyrawsize":  strconv.Itoa(len(rawLogData)),
@@ -255,7 +239,7 @@ func (s *LogStore) PostRawLogs(body []byte, hashKey *string) (err error) {
 		outLen = n
 	case Compress_ZSTD:
 		// Compress body with zstd
-		out = zstdWriter.EncodeAll(body, nil)
+		out, _ = slsZstdCompressor.Compress(body, nil)
 		h = map[string]string{
 			"x-log-compresstype": "zstd",
 			"x-log-bodyrawsize":  strconv.Itoa(len(body)),
@@ -327,7 +311,7 @@ func (s *LogStore) PutLogs(lg *LogGroup) (err error) {
 		outLen = n
 	case Compress_ZSTD:
 		// Compress body with zstd
-		out = zstdWriter.EncodeAll(body, nil)
+		out, _ = slsZstdCompressor.Compress(body, nil)
 		h = map[string]string{
 			"x-log-compresstype": "zstd",
 			"x-log-bodyrawsize":  strconv.Itoa(len(body)),
@@ -367,18 +351,21 @@ func (s *LogStore) PutLogs(lg *LogGroup) (err error) {
 
 // PostLogStoreLogs put logs into Shard logstore by hashKey.
 // The callers should transform user logs into LogGroup.
-func (s *LogStore) PostLogStoreLogs(lg *LogGroup, hashKey *string) (err error) {
-	if len(lg.Logs) == 0 {
+func (s *LogStore) PostLogStoreLogs(req *PostLogStoreLogsRequest) (err error) {
+	if err = s.SetPutLogCompressType(req.CompressType); err != nil {
+		return err
+	}
+
+	if req.LogGroup == nil || len(req.LogGroup.Logs) == 0 {
 		// empty log group or empty hashkey
 		return nil
 	}
 
-	if hashKey == nil || *hashKey == "" || s.useMetricStoreURL {
-		// empty hash call PutLogs
-		return s.PutLogs(lg)
+	if s.useMetricStoreURL {
+		return s.PutLogs(req.LogGroup)
 	}
 
-	body, err := proto.Marshal(lg)
+	body, err := proto.Marshal(req.LogGroup)
 	if err != nil {
 		return NewClientError(err)
 	}
@@ -408,7 +395,7 @@ func (s *LogStore) PostLogStoreLogs(lg *LogGroup, hashKey *string) (err error) {
 		outLen = n
 	case Compress_ZSTD:
 		// Compress body with zstd
-		out = zstdWriter.EncodeAll(body, nil)
+		out, _ = slsZstdCompressor.Compress(body, nil)
 		h = map[string]string{
 			"x-log-compresstype": "zstd",
 			"x-log-bodyrawsize":  strconv.Itoa(len(body)),
@@ -425,7 +412,19 @@ func (s *LogStore) PostLogStoreLogs(lg *LogGroup, hashKey *string) (err error) {
 		outLen = len(out)
 	}
 
-	uri := fmt.Sprintf("/logstores/%v/shards/route?key=%v", s.Name, *hashKey)
+	var uri = fmt.Sprintf("/logstores/%s", s.Name)
+	var params = url.Values{}
+	if req.HashKey != nil && *req.HashKey != "" {
+		params.Set("key", *req.HashKey)
+		uri = fmt.Sprintf("/logstores/%s/shards/route", s.Name)
+	}
+	if req.Processor != "" {
+		params.Set("processor", req.Processor)
+	}
+	if len(params) > 0 {
+		uri = fmt.Sprintf("%s?%s", uri, params.Encode())
+	}
+
 	r, err := request(s.project, "POST", uri, h, out[:outLen])
 	if err != nil {
 		return NewClientError(err)
@@ -503,13 +502,16 @@ func (s *LogStore) GetLogsBytes(shardID int, cursor, endCursor string,
 // Deprecated: use GetLogsBytesWithQuery instead
 func (s *LogStore) GetLogsBytesV2(plr *PullLogRequest) ([]byte, string, error) {
 	out, plm, err := s.GetLogsBytesWithQuery(plr)
+	if err != nil {
+		return nil, "", err
+	}
 	return out, plm.NextCursor, err
 }
 
 // GetLogsBytes gets logs binary data from shard specified by shardId according cursor and endCursor.
 // The logGroupMaxCount is the max number of logGroup could be returned.
 // The nextCursor is the next curosr can be used to read logs at next time.
-func (s *LogStore) GetLogsBytesWithQuery(plr *PullLogRequest) (out []byte, pullLogMeta *PullLogMeta, err error) {
+func (s *LogStore) GetLogsBytesWithQuery(plr *PullLogRequest) ([]byte, *PullLogMeta, error) {
 	h := map[string]string{
 		"x-log-bodyrawsize": "0",
 		"Accept":            "application/x-protobuf",
@@ -527,102 +529,86 @@ func (s *LogStore) GetLogsBytesWithQuery(plr *PullLogRequest) (out []byte, pullL
 
 	r, err := request(s.project, "GET", uri, h, nil)
 	if err != nil {
-		return
+		return nil, nil, err
 	}
 	defer r.Body.Close()
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return
+		return nil, nil, err
 	}
-	pullLogMeta = &PullLogMeta{}
-	pullLogMeta.Netflow = len(buf)
 	if r.StatusCode != http.StatusOK {
 		errMsg := &Error{}
 		err = json.Unmarshal(buf, errMsg)
 		if err != nil {
-			err = fmt.Errorf("failed to get cursor")
 			dump, _ := httputil.DumpResponse(r, true)
 			if IsDebugLevelMatched(1) {
 				level.Error(Logger).Log("msg", string(dump))
 			}
-			return
+			return nil, nil, fmt.Errorf("failed parse errorCode json: %w", err)
 		}
-		err = fmt.Errorf("%v:%v", errMsg.Code, errMsg.Message)
-		return
+		return nil, nil, fmt.Errorf("%v:%v", errMsg.Code, errMsg.Message)
 	}
-	v, ok := r.Header["X-Log-Compresstype"]
-	if !ok || len(v) == 0 {
-		err = fmt.Errorf("can't find 'x-log-compresstype' header")
-		return
+	netflow := len(buf)
+
+	nextCursor, err := parseHeaderString(r.Header, "X-Log-Cursor")
+	if err != nil {
+		return nil, nil, err
 	}
-	var compressType = Compress_None
-	if v[0] == "lz4" {
-		compressType = Compress_LZ4
-	} else if v[0] == "zstd" {
-		compressType = Compress_ZSTD
-	} else {
-		err = fmt.Errorf("unexpected compress type:%v", compressType)
-		return
+	rawSize, err := ParseHeaderInt(r, "X-Log-Bodyrawsize")
+	if err != nil {
+		return nil, nil, err
+	}
+	count, err := ParseHeaderInt(r, "X-Log-Count")
+	if err != nil {
+		return nil, nil, err
+	}
+	readLastCursor, _ := parseHeaderString(r.Header, "X-Log-Read-Last-Cursor")
+	pullMeta := &PullLogMeta{
+		RawSize:        rawSize,
+		NextCursor:     nextCursor,
+		Netflow:        netflow,
+		Count:          count,
+		readLastCursor: readLastCursor,
+	}
+	// If query is not nil, extract more headers
+	if plr.Query != "" {
+		pullMeta.RawSizeBeforeQuery, _ = ParseHeaderInt(r, "X-Log-Rawdatasize")
+		pullMeta.DataCountBeforeQuery, _ = ParseHeaderInt(r, "X-Log-Rawdatacount")
+		pullMeta.Lines, _ = ParseHeaderInt(r, "X-Log-Resultlines")
+		pullMeta.LinesBeforeQuery, _ = ParseHeaderInt(r, "X-Log-Rawdatalines")
+		pullMeta.FailedLines, _ = ParseHeaderInt(r, "X-Log-Failedlines")
+	}
+	if rawSize == 0 {
+		return make([]byte, 0), pullMeta, nil
 	}
 
-	v, ok = r.Header["X-Log-Cursor"]
-	if !ok || len(v) == 0 {
-		err = fmt.Errorf("can't find 'x-log-cursor' header")
-		return
-	}
-	pullLogMeta.NextCursor = v[0]
-	pullLogMeta.RawSize, err = ParseHeaderInt(r, "X-Log-Bodyrawsize")
+	// decompress data
+	out := make([]byte, rawSize)
+	compressType, err := parseHeaderString(r.Header, "X-Log-Compresstype")
 	if err != nil {
-		return
+		return nil, nil, err
 	}
-	if pullLogMeta.RawSize > 0 {
-		out = make([]byte, pullLogMeta.RawSize)
-		switch compressType {
-		case Compress_LZ4:
-			uncompressedSize := 0
-			if uncompressedSize, err = lz4.UncompressBlock(buf, out); err != nil {
-				return
-			}
-			if uncompressedSize != pullLogMeta.RawSize {
-				return nil, nil, fmt.Errorf("uncompressed size %d does not match 'x-log-bodyrawsize' %d", uncompressedSize, pullLogMeta.RawSize)
-			}
-		case Compress_ZSTD:
-			out, err = zstdReader.DecodeAll(buf, out[:0])
-			if err != nil {
-				return nil, nil, err
-			}
-			if len(out) != pullLogMeta.RawSize {
-				return nil, nil, fmt.Errorf("uncompressed size %d does not match 'x-log-bodyrawsize' %d", len(out), pullLogMeta.RawSize)
-			}
-		default:
-			return nil, nil, fmt.Errorf("unexpected compress type: %d", compressType)
+	switch compressType {
+	case "lz4":
+		uncompressedSize := 0
+		if uncompressedSize, err = lz4.UncompressBlock(buf, out); err != nil {
+			return nil, nil, err
 		}
+		if uncompressedSize != rawSize {
+			return nil, nil, fmt.Errorf("uncompressed size %d does not match 'x-log-bodyrawsize' %d", uncompressedSize, rawSize)
+		}
+	case "zstd":
+		out, err = slsZstdCompressor.Decompress(buf, out)
+		if err != nil {
+			return nil, nil, err
+		}
+		if len(out) != rawSize {
+			return nil, nil, fmt.Errorf("uncompressed size %d does not match 'x-log-bodyrawsize' %d", len(out), rawSize)
+		}
+	default:
+		return nil, nil, fmt.Errorf("unexpected compress type: %s", compressType)
 	}
-	// todo: add query meta
-	// If query is not nil, extract more headers
-	// if plr.Query != "" {
-	// 	pullLogMeta.RawSizeBeforeQuery, err = ParseHeaderInt(r, "X-Log-Rawdatasize")
-	// 	if err != nil {
-	// 		return
-	// 	}
-	// 	pullLogMeta.DataCountBeforeQuery, err = ParseHeaderInt(r, "X-Log-Rawdatacount")
-	// 	if err != nil {
-	// 		return
-	// 	}
-	// 	pullLogMeta.Lines, err = ParseHeaderInt(r, "X-Log-Resultlines")
-	// 	if err != nil {
-	// 		return
-	// 	}
-	// 	pullLogMeta.LinesBeforeQuery, err = ParseHeaderInt(r, "X-Log-Rawdatalines")
-	// 	if err != nil {
-	// 		return
-	// 	}
-	// 	pullLogMeta.FailedLines, err = ParseHeaderInt(r, "X-Log-Failedlines")
-	// 	if err != nil {
-	// 		return
-	// 	}
-	// }
-	return
+	return out, pullMeta, nil
 }
 
 // LogsBytesDecode decodes logs binary data returned by GetLogsBytes API
@@ -655,6 +641,9 @@ func (s *LogStore) PullLogs(shardID int, cursor, endCursor string,
 // Deprecated: use PullLogsWithQuery instead
 func (s *LogStore) PullLogsV2(plr *PullLogRequest) (*LogGroupList, string, error) {
 	gl, plm, err := s.PullLogsWithQuery(plr)
+	if err != nil {
+		return nil, "", err
+	}
 	return gl, plm.NextCursor, err
 }
 
@@ -668,24 +657,30 @@ func (s *LogStore) PullLogsWithQuery(plr *PullLogRequest) (gl *LogGroupList, plm
 	if err != nil {
 		return nil, nil, err
 	}
-
+	if plm.Count > 0 && plm.readLastCursor != "" && plr.Query == "" {
+		gl.addCursorIfPossible(plm.readLastCursor)
+	}
 	return
 }
 
 // GetHistograms query logs with [from, to) time range
 func (s *LogStore) GetHistograms(topic string, from int64, to int64, queryExp string) (*GetHistogramsResponse, error) {
+	return s.GetHistogramsV2(&GetHistogramRequest{
+		Topic: topic,
+		From:  from,
+		To:    to,
+		Query: queryExp,
+	})
+}
+
+func (s *LogStore) GetHistogramsV2(ghr *GetHistogramRequest) (*GetHistogramsResponse, error) {
 
 	h := map[string]string{
 		"x-log-bodyrawsize": "0",
 		"Accept":            "application/json",
 	}
 
-	urlVal := url.Values{}
-	urlVal.Add("type", "histogram")
-	urlVal.Add("from", strconv.Itoa(int(from)))
-	urlVal.Add("to", strconv.Itoa(int(to)))
-	urlVal.Add("topic", topic)
-	urlVal.Add("query", queryExp)
+	urlVal := ghr.ToURLParams()
 
 	uri := fmt.Sprintf("/logstores/%s?%s", s.Name, urlVal.Encode())
 	r, err := request(s.project, "GET", uri, h, nil)
@@ -881,6 +876,20 @@ func (s *LogStore) GetHistogramsToCompleted(topic string, from int64, to int64, 
 	var err error
 	f := func() (bool, error) {
 		res, err = s.GetHistograms(topic, from, to, queryExp)
+		if err == nil {
+			return res.IsComplete(), nil
+		}
+		return false, err
+	}
+	s.getToCompleted(f)
+	return res, err
+}
+
+func (s *LogStore) GetHistogramsToCompletedV2(ghr *GetHistogramRequest) (*GetHistogramsResponse, error) {
+	var res *GetHistogramsResponse
+	var err error
+	f := func() (bool, error) {
+		res, err = s.GetHistogramsV2(ghr)
 		if err == nil {
 			return res.IsComplete(), nil
 		}
