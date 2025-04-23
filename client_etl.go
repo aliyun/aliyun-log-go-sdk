@@ -28,7 +28,8 @@ type ETLConfiguration struct {
 	RoleArn         string            `json:"roleArn,omitempty"`
 	Script          string            `json:"script"`
 	ToTime          int32             `json:"toTime,omitempty"`
-	Version         int8              `json:"version"`
+	Lang            int8              `json:"version"`
+	Version         int8              `json:"lang"`
 	ETLSinks        []ETLSink         `json:"sinks"`
 }
 
@@ -45,6 +46,7 @@ type ETLSink struct {
 	Project         string `json:"project"`
 	RoleArn         string `json:"roleArn,omitempty"`
 	Type            string `json:"type,omitempty"`
+	DataSets        string `json:"datasets"`
 }
 
 type ListETLResponse struct {
