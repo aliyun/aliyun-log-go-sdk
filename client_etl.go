@@ -28,8 +28,8 @@ type ETLConfiguration struct {
 	RoleArn         string            `json:"roleArn,omitempty"`
 	Script          string            `json:"script"`
 	ToTime          int32             `json:"toTime,omitempty"`
-	Lang            int8              `json:"version"`
-	Version         int8              `json:"lang"`
+	Version         int8              `json:"version"`
+	Lang            string            `json:"lang"`
 	ETLSinks        []ETLSink         `json:"sinks"`
 }
 
@@ -38,15 +38,15 @@ type ETLSchedule struct {
 }
 
 type ETLSink struct {
-	AccessKeyId     string `json:"accessKeyId"`
-	AccessKeySecret string `json:"accessKeySecret"`
-	Endpoint        string `json:"endpoint"`
-	Logstore        string `json:"logstore"`
-	Name            string `json:"name"`
-	Project         string `json:"project"`
-	RoleArn         string `json:"roleArn,omitempty"`
-	Type            string `json:"type,omitempty"`
-	DataSets        string `json:"datasets"`
+	AccessKeyId     string   `json:"accessKeyId"`
+	AccessKeySecret string   `json:"accessKeySecret"`
+	Endpoint        string   `json:"endpoint"`
+	Logstore        string   `json:"logstore"`
+	Name            string   `json:"name"`
+	Project         string   `json:"project"`
+	RoleArn         string   `json:"roleArn,omitempty"`
+	Type            string   `json:"type,omitempty"`
+	DataSets        []string `json:"datasets"`
 }
 
 type ListETLResponse struct {
