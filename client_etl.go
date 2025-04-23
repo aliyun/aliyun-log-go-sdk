@@ -46,7 +46,7 @@ type ETLSink struct {
 	Project         string   `json:"project"`
 	RoleArn         string   `json:"roleArn,omitempty"`
 	Type            string   `json:"type,omitempty"`
-	DataSets        []string `json:"datasets"`
+	DataSets        []string `json:"datasets,omitempty"`
 }
 
 type ListETLResponse struct {
