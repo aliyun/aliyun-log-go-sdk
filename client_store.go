@@ -2,10 +2,7 @@ package sls
 
 import (
 	base64E "encoding/base64"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/url"
 	"strconv"
 	"time"
 )
@@ -133,29 +130,18 @@ func (c *Client) GetCursor(project, logstore string, shardID int, from string) (
 
 // GetCursorTime ...
 func (c *Client) GetCursorTime(project, logstore string, shardID int, cursor string) (cursorTime time.Time, err error) {
-	h := map[string]string{
-		"x-log-bodyrawsize": "0",
-	}
-
-	urlVal := url.Values{}
-	urlVal.Add("cursor", cursor)
-	urlVal.Add("type", "cursor_time")
-	uri := fmt.Sprintf("/logstores/%v/shards/%v?%v", logstore, shardID, urlVal.Encode())
-	r, err := c.request(project, "GET", uri, h, nil)
-	if err != nil {
-		return
-	}
-	defer r.Body.Close()
-	buf, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return cursorTime, NewClientError(err)
-	}
+	path := fmt.Sprintf("/logstores/%v/shards/%v", logstore, shardID)
 	type getCursorResult struct {
 		CursorTime int `json:"cursor_time"`
 	}
 	var rst getCursorResult
-	err = json.Unmarshal(buf, &rst)
-	return time.Unix(int64(rst.CursorTime), 0), err
+	if err := c.doRequest(project, "GET", path, map[string]string{
+		"cursor": cursor,
+		"type":   "cursor_time",
+	}, nil, nil, &rst); err != nil {
+		return time.Time{}, err
+	}
+	return time.Unix(int64(rst.CursorTime), 0), nil
 }
 
 // GetPrevCursorTime ...
@@ -347,7 +333,7 @@ func (c *Client) DeleteIndex(project, logstore string) error {
 }
 
 // ListSubStore ...
-func (c *Client) ListSubStore(project, logstore string) ([]string, error) {
+func (c *Client) ListSubStore(project, logstore string) (subStoreNames []string, err error) {
 	path := fmt.Sprintf("/logstores/%v/substores", logstore)
 	type sortedSubStoreList struct {
 		SubStores []string `json:"substores"`
@@ -376,13 +362,13 @@ func (c *Client) CreateSubStore(project, logstore string, sss *SubStore) error {
 }
 
 // UpdateSubStore ...
-func (c *Client) UpdateSubStore(project, logstore string, sss *SubStore) (err error) {
+func (c *Client) UpdateSubStore(project, logstore string, sss *SubStore) error {
 	path := fmt.Sprintf("/logstores/%s/substores/%s", logstore, sss.Name)
 	return c.doRequest(project, "PUT", path, nil, nil, sss, nil)
 }
 
 // DeleteSubStore ...
-func (c *Client) DeleteSubStore(project, logstore string, name string) (err error) {
+func (c *Client) DeleteSubStore(project, logstore string, name string) error {
 	path := fmt.Sprintf("/logstores/%s/substores/%s", logstore, name)
 	return c.doRequest(project, "DELETE", path, nil, nil, nil, nil)
 }
@@ -401,7 +387,7 @@ func (c *Client) GetSubStoreTTL(project, logstore string) (ttl int, err error) {
 }
 
 // UpdateSubStoreTTL ...
-func (c *Client) UpdateSubStoreTTL(project, logstore string, ttl int) (err error) {
+func (c *Client) UpdateSubStoreTTL(project, logstore string, ttl int) error {
 	path := fmt.Sprintf("/logstores/%s/substores/storage/ttl", logstore)
 	return c.doRequest(project, "PUT", path, map[string]string{
 		"ttl": strconv.Itoa(ttl),
