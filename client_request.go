@@ -9,10 +9,62 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"strings"
 
 	"github.com/go-kit/kit/log/level"
 )
+
+// response must be nil or a pointer to a struct which is json unmarshalable
+func (c *Client) doRequest(project, method, path string, queryParams, headers map[string]string, reqBody any, response any) error {
+	if headers == nil {
+		headers = make(map[string]string)
+	}
+	p := path
+	if queryParams != nil {
+		urlVal := url.Values{}
+		for k, v := range queryParams {
+			urlVal.Add(k, v)
+		}
+		p += "?" + urlVal.Encode()
+	}
+	var body []byte
+	if reqBody != nil {
+		b, err := json.Marshal(reqBody)
+		if err != nil {
+			return NewClientError(err)
+		}
+		body = b
+		headers[HTTPHeaderContentType] = "application/json"
+	}
+	r, err := c.request(project, method, p, headers, body)
+	if err != nil {
+		return err
+	}
+	defer r.Body.Close()
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return NewClientError(err)
+	}
+	reqId := r.Header.Get(RequestIDHeader)
+	if r.StatusCode != http.StatusOK {
+		slsErr := new(Error)
+		slsErr.HTTPCode = (int32)(r.StatusCode)
+		slsErr.RequestID = reqId
+		err := json.Unmarshal(buf, slsErr)
+		if err != nil {
+			return NewBadResponseError(string(buf), r.Header, r.StatusCode)
+		}
+		return slsErr
+	}
+	if response == nil {
+		return nil
+	}
+	if err := json.Unmarshal(buf, response); err != nil {
+		return NewBadResponseError(string(buf), r.Header, r.StatusCode)
+	}
+	return nil
+}
 
 // request sends a request to alibaba cloud Log Service.
 // @note if error is nil, you must call http.Response.Body.Close() to finalize reader
