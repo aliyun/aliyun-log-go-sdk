@@ -286,12 +286,7 @@ func (c *Client) GetProject(name string) (*LogProject, error) {
 		return nil, failReadResponseError(err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return nil, invalidResponseError(string(buf), resp.Header, resp.StatusCode)
-		}
-		return nil, slsErr
+		return nil, getHttpNot200Error(buf, resp.Header, resp.StatusCode)
 	}
 	err = json.Unmarshal(buf, proj)
 	return proj, err
@@ -326,12 +321,7 @@ func (c *Client) ListProject() (projectNames []string, err error) {
 		return nil, failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return nil, invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return nil, slsErr
+		return nil, getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 
 	body := &Body{}
@@ -373,12 +363,7 @@ func (c *Client) ListProjectV2(offset, size int) (projects []LogProject, count, 
 		return nil, 0, 0, failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return nil, 0, 0, invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return nil, 0, 0, slsErr
+		return nil, 0, 0, getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 
 	body := &Body{}

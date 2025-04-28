@@ -3,20 +3,31 @@ package sls
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 )
 
-func invalidResponseError(body string, header map[string][]string, httpCode int) error {
-	reqId := header[RequestIDHeader]
+func invalidResponseError(body string, header http.Header, httpCode int) error {
+	reqId := header.Get(RequestIDHeader)
 	return fmt.Errorf("server returned an error response with invalid JSON format, httpCode: %d, reqId: %s, body: %s", httpCode, reqId, body)
 }
 
-func invalidResponseJsonError(body string, header map[string][]string, httpCode int) error {
-	reqId := header[RequestIDHeader]
+func invalidResponseJsonError(body string, header http.Header, httpCode int) error {
+	reqId := header.Get(RequestIDHeader)
 	return fmt.Errorf("server returned an response with invalid JSON format, httpCode: %d, reqId: %s, body: %s", httpCode, reqId, body)
 }
 
 func failReadResponseError(err error) error {
 	return fmt.Errorf("fail to read response body: %w", err)
+}
+
+func getHttpNot200Error(body []byte, header http.Header, httpCode int) error {
+	slsErr := new(Error)
+	if err := json.Unmarshal(body, slsErr); err != nil {
+		return invalidResponseError(string(body), header, httpCode)
+	}
+	slsErr.HTTPCode = int32(httpCode)
+	slsErr.RequestID = header.Get(RequestIDHeader)
+	return slsErr
 }
 
 // BadResponseError : special sls error, not valid json format

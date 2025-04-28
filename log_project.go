@@ -147,12 +147,7 @@ func (p *LogProject) ListLogStore() ([]string, error) {
 		return nil, failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return nil, invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return nil, slsErr
+		return nil, getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 
 	type Body struct {
@@ -185,12 +180,7 @@ func (p *LogProject) ListLogStoreV2(offset, size int, telemetryType string) ([]s
 		return nil, failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return nil, invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return nil, slsErr
+		return nil, getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 
 	type Body struct {
@@ -222,12 +212,7 @@ func (p *LogProject) GetLogStore(name string) (*LogStore, error) {
 		return nil, failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return nil, invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return nil, slsErr
+		return nil, getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 
 	s := &LogStore{}
@@ -283,12 +268,7 @@ func (p *LogProject) CreateLogStore(name string, ttl, shardCnt int, autoSplit bo
 		return failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return slsErr
+		return getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 	return nil
 }
@@ -316,12 +296,7 @@ func (p *LogProject) CreateLogStoreV2(logstore *LogStore) error {
 		return failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return slsErr
+		return getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 	return nil
 }
@@ -342,12 +317,7 @@ func (p *LogProject) DeleteLogStore(name string) (err error) {
 		return failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return slsErr
+		return getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 	return nil
 }
@@ -385,12 +355,7 @@ func (p *LogProject) UpdateLogStore(name string, ttl, shardCnt int) (err error) 
 		return failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return slsErr
+		return getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 	return nil
 }
@@ -418,12 +383,7 @@ func (p *LogProject) UpdateLogStoreV2(logstore *LogStore) (err error) {
 		return failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return slsErr
+		return getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 	return nil
 }
@@ -448,12 +408,7 @@ func (p *LogProject) ListMachineGroup(offset, size int) (m []string, total int, 
 		return nil, 0, failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return nil, 0, invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return nil, 0, slsErr
+		return nil, 0, getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 
 	type Body struct {
@@ -527,12 +482,7 @@ func (p *LogProject) GetMachineGroup(name string) (m *MachineGroup, err error) {
 		return nil, failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return nil, invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return nil, slsErr
+		return nil, getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 
 	m = new(MachineGroup)
@@ -565,12 +515,7 @@ func (p *LogProject) CreateMachineGroup(m *MachineGroup) error {
 		return failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return slsErr
+		return getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 	return nil
 }
@@ -597,12 +542,7 @@ func (p *LogProject) UpdateMachineGroup(m *MachineGroup) (err error) {
 		return failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return slsErr
+		return getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 	return nil
 }
@@ -622,12 +562,7 @@ func (p *LogProject) DeleteMachineGroup(name string) (err error) {
 		return failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return slsErr
+		return getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 
 	return nil
@@ -653,12 +588,7 @@ func (p *LogProject) ListConfig(offset, size int) (cfgNames []string, total int,
 		return nil, 0, failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return nil, 0, invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return nil, 0, slsErr
+		return nil, 0, getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 
 	type Body struct {
@@ -710,12 +640,7 @@ func (p *LogProject) GetConfig(name string) (c *LogConfig, err error) {
 		return nil, failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return nil, invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return nil, slsErr
+		return nil, getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 
 	c = &LogConfig{}
@@ -752,12 +677,7 @@ func (p *LogProject) UpdateConfig(c *LogConfig) (err error) {
 		return failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return slsErr
+		return getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 	return nil
 }
@@ -784,12 +704,7 @@ func (p *LogProject) CreateConfig(c *LogConfig) (err error) {
 		return failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return slsErr
+		return getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 	return nil
 }
@@ -809,12 +724,7 @@ func (p *LogProject) GetConfigString(name string) (c string, err error) {
 		return "", failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return "", invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return "", slsErr
+		return "", getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 	if IsDebugLevelMatched(4) {
 		level.Info(Logger).Log("msg", "Get logtail config, result", c)
@@ -841,12 +751,7 @@ func (p *LogProject) UpdateConfigString(configName, c string) (err error) {
 		return failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return slsErr
+		return getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 	return nil
 }
@@ -869,12 +774,7 @@ func (p *LogProject) CreateConfigString(c string) (err error) {
 		return failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return slsErr
+		return getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 	return nil
 }
@@ -894,12 +794,7 @@ func (p *LogProject) DeleteConfig(name string) (err error) {
 		return failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return slsErr
+		return getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 
 	return nil
@@ -921,12 +816,7 @@ func (p *LogProject) GetAppliedMachineGroups(confName string) (groupNames []stri
 		return nil, failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return nil, invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return nil, slsErr
+		return nil, getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 
 	type Body struct {
@@ -958,12 +848,7 @@ func (p *LogProject) GetAppliedConfigs(groupName string) (confNames []string, er
 		return nil, failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return nil, invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return nil, slsErr
+		return nil, getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 
 	type Cfg struct {
@@ -995,12 +880,7 @@ func (p *LogProject) ApplyConfigToMachineGroup(confName, groupName string) (err 
 		return failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return slsErr
+		return getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 
 	return nil
@@ -1022,12 +902,7 @@ func (p *LogProject) RemoveConfigFromMachineGroup(confName, groupName string) (e
 		return failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return slsErr
+		return getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 
 	return nil
@@ -1054,12 +929,7 @@ func (p *LogProject) CreateEtlMeta(etlMeta *EtlMeta) (err error) {
 		return failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return slsErr
+		return getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 	return nil
 }
@@ -1085,12 +955,7 @@ func (p *LogProject) UpdateEtlMeta(etlMeta *EtlMeta) (err error) {
 		return failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return slsErr
+		return getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 	return nil
 }
@@ -1110,12 +975,7 @@ func (p *LogProject) DeleteEtlMeta(etlMetaName, etlMetaKey string) (err error) {
 		return failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return slsErr
+		return getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 	return nil
 }
@@ -1135,12 +995,7 @@ func (p *LogProject) listEtlMeta(etlMetaName, etlMetaKey, etlMetaTag string, off
 		return 0, 0, nil, failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return 0, 0, nil, invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return 0, 0, nil, slsErr
+		return 0, 0, nil, getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 	type BodyMeta struct {
 		MetaName  string `json:"etlMetaName"`
@@ -1211,12 +1066,7 @@ func (p *LogProject) ListEtlMetaName(offset, size int) (total int, count int, et
 		return 0, 0, nil, failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return 0, 0, nil, invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return 0, 0, nil, slsErr
+		return 0, 0, nil, getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 	type Body struct {
 		Total        int      `json:"total"`
@@ -1252,12 +1102,7 @@ func (p *LogProject) CreateLogging(detail *Logging) (err error) {
 		return failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return slsErr
+		return getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 	return nil
 }
@@ -1283,12 +1128,7 @@ func (p *LogProject) UpdateLogging(detail *Logging) (err error) {
 		return failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return slsErr
+		return getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 	return nil
 }
@@ -1307,12 +1147,7 @@ func (p *LogProject) GetLogging() (c *Logging, err error) {
 		return nil, failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return nil, invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return nil, slsErr
+		return nil, getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 
 	c = &Logging{}
@@ -1342,12 +1177,7 @@ func (p *LogProject) DeleteLogging() (err error) {
 		return failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return slsErr
+		return getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 	return nil
 }

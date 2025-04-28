@@ -107,12 +107,7 @@ func (s *LogStore) ListShipper() ([]string, error) {
 		return nil, failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return nil, invalidResponseError(string(buf), r.Header, r.StatusCode)
-		}
-		return nil, slsErr
+		return nil, getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 	type Body struct {
 		Count   int

@@ -472,17 +472,12 @@ func (c *Client) CreateSubStore(project, logstore string, sss *SubStore) (err er
 		return NewClientError(err)
 	}
 	defer r.Body.Close()
-	body, err = ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		return failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(body, slsErr)
-		if err != nil {
-			return invalidResponseError(string(body), r.Header, r.StatusCode)
-		}
-		return slsErr
+		getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 	return
 }
@@ -504,17 +499,12 @@ func (c *Client) UpdateSubStore(project, logstore string, sss *SubStore) (err er
 		return NewClientError(err)
 	}
 	defer r.Body.Close()
-	body, err = ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		return failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(body, slsErr)
-		if err != nil {
-			return invalidResponseError(string(body), r.Header, r.StatusCode)
-		}
-		return slsErr
+		getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 	return
 }
@@ -530,17 +520,12 @@ func (c *Client) DeleteSubStore(project, logstore string, name string) (err erro
 		return NewClientError(err)
 	}
 	defer r.Body.Close()
-	body, err := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		return failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(body, slsErr)
-		if err != nil {
-			return invalidResponseError(string(body), r.Header, r.StatusCode)
-		}
-		return slsErr
+		getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 	return
 }
@@ -599,17 +584,12 @@ func (c *Client) UpdateSubStoreTTL(project, logstore string, ttl int) (err error
 		return NewClientError(err)
 	}
 	defer r.Body.Close()
-	body, err := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		return failReadResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		slsErr := new(Error)
-		err := json.Unmarshal(body, slsErr)
-		if err != nil {
-			return invalidResponseError(string(body), r.Header, r.StatusCode)
-		}
-		return slsErr
+		return getHttpNot200Error(buf, r.Header, r.StatusCode)
 	}
 	return
 }
