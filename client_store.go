@@ -477,7 +477,7 @@ func (c *Client) CreateSubStore(project, logstore string, sss *SubStore) (err er
 		return readResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		httpStatusNotOkError(buf, r.Header, r.StatusCode)
+		return httpStatusNotOkError(buf, r.Header, r.StatusCode)
 	}
 	return
 }
@@ -504,7 +504,7 @@ func (c *Client) UpdateSubStore(project, logstore string, sss *SubStore) (err er
 		return readResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		httpStatusNotOkError(buf, r.Header, r.StatusCode)
+		return httpStatusNotOkError(buf, r.Header, r.StatusCode)
 	}
 	return
 }
@@ -525,7 +525,7 @@ func (c *Client) DeleteSubStore(project, logstore string, name string) (err erro
 		return readResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		httpStatusNotOkError(buf, r.Header, r.StatusCode)
+		return httpStatusNotOkError(buf, r.Header, r.StatusCode)
 	}
 	return
 }
