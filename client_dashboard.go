@@ -111,7 +111,10 @@ func (c *Client) GetChart(project, dashboardName, chartName string) (chart *Char
 		return nil, err
 	}
 	defer r.Body.Close()
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, failReadResponseError(err)
+	}
 	chart = &Chart{}
 	if err = json.Unmarshal(buf, chart); err != nil {
 		err = NewClientError(err)
@@ -220,7 +223,10 @@ func (c *Client) GetDashboard(project, name string) (dashboard *Dashboard, err e
 		return nil, err
 	}
 	defer r.Body.Close()
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, failReadResponseError(err)
+	}
 	dashboard = &Dashboard{}
 	if err = json.Unmarshal(buf, dashboard); err != nil {
 		err = NewClientError(err)
@@ -263,7 +269,10 @@ func (c *Client) ListDashboard(project string, dashboardName string, offset, siz
 		Count         int      `json:"count"`
 	}
 
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, 0, 0, failReadResponseError(err)
+	}
 	dashboards := &ListDashboardResponse{}
 	if err = json.Unmarshal(buf, dashboards); err != nil {
 		err = NewClientError(err)
@@ -293,7 +302,10 @@ func (c *Client) ListDashboardV2(project string, dashboardName string, offset, s
 		DashboardItems []ResponseDashboardItem `json:"dashboardItems"`
 	}
 
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, nil, 0, 0, failReadResponseError(err)
+	}
 	dashboards := &ListDashboardResponse{}
 	if err = json.Unmarshal(buf, dashboards); err != nil {
 		err = NewClientError(err)

@@ -173,7 +173,10 @@ func (c *Client) GetScheduledSQL(project string, name string) (*ScheduledSQL, er
 		return nil, err
 	}
 	defer r.Body.Close()
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, failReadResponseError(err)
+	}
 	scheduledSQL := &ScheduledSQL{}
 	if err = json.Unmarshal(buf, scheduledSQL); err != nil {
 		err = NewClientError(err)
@@ -207,7 +210,10 @@ func (c *Client) ListScheduledSQL(project, name, displayName string, offset, siz
 		Count   int             `json:"count"`
 		Results []*ScheduledSQL `json:"results"`
 	}
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, 0, 0, failReadResponseError(err)
+	}
 	scheduledSqlList := &ScheduledSqlList{}
 	if err = json.Unmarshal(buf, scheduledSqlList); err != nil {
 		err = NewClientError(err)
@@ -241,7 +247,10 @@ func (c *Client) GetScheduledSQLJobInstance(projectName, jobName, instanceId str
 		return nil, err
 	}
 	defer r.Body.Close()
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, failReadResponseError(err)
+	}
 	instance := &ScheduledSQLJobInstance{}
 	if err = json.Unmarshal(buf, instance); err != nil {
 		err = NewClientError(err)
@@ -302,7 +311,10 @@ func (c *Client) ListScheduledSQLJobInstances(projectName, jobName string, statu
 		Count   int64                      `json:"count"`
 		Results []*ScheduledSQLJobInstance `json:"results"`
 	}
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, 0, 0, failReadResponseError(err)
+	}
 	jobInstances := &ScheduledSqlJobInstances{}
 	if err = json.Unmarshal(buf, jobInstances); err != nil {
 		err = NewClientError(err)

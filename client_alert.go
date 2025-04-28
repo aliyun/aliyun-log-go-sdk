@@ -327,7 +327,10 @@ func (c *Client) GetSavedSearch(project string, savedSearchName string) (*SavedS
 		return nil, err
 	}
 	defer r.Body.Close()
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, failReadResponseError(err)
+	}
 	savedSearch := &SavedSearch{}
 	if err = json.Unmarshal(buf, savedSearch); err != nil {
 		err = NewClientError(err)
@@ -357,7 +360,10 @@ func (c *Client) ListSavedSearch(project string, savedSearchName string, offset,
 		Savedsearches []string `json:"savedsearches"`
 	}
 
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, 0, 0, failReadResponseError(err)
+	}
 	listSavedSearch := &ListSavedSearch{}
 	if err = json.Unmarshal(buf, listSavedSearch); err != nil {
 		err = NewClientError(err)
@@ -388,7 +394,10 @@ func (c *Client) ListSavedSearchV2(project string, savedSearchName string, offse
 		SavedsearchItems []ResponseSavedSearchItem `json:"savedsearchItems"`
 	}
 
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, nil, 0, 0, failReadResponseError(err)
+	}
 	listSavedSearch := &ListSavedSearch{}
 	if err = json.Unmarshal(buf, listSavedSearch); err != nil {
 		err = NewClientError(err)
@@ -522,7 +531,10 @@ func (c *Client) GetAlert(project string, alertName string) (*Alert, error) {
 		return nil, err
 	}
 	defer r.Body.Close()
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, failReadResponseError(err)
+	}
 	alert := &Alert{}
 	if err = json.Unmarshal(buf, alert); err != nil {
 		err = NewClientError(err)
@@ -541,7 +553,10 @@ func (c *Client) GetAlertString(project string, alertName string) (string, error
 		return "", err
 	}
 	defer r.Body.Close()
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return "", failReadResponseError(err)
+	}
 	return string(buf), err
 }
 
@@ -570,7 +585,10 @@ func (c *Client) ListAlert(project, alertName, dashboard string, offset, size in
 		Count   int      `json:"count"`
 		Results []*Alert `json:"results"`
 	}
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, 0, 0, failReadResponseError(err)
+	}
 	listAlert := &AlertList{}
 	if err = json.Unmarshal(buf, listAlert); err != nil {
 		err = NewClientError(err)

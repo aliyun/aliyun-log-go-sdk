@@ -94,7 +94,10 @@ func (s *LogStore) ListShards() (shardIDs []*Shard, err error) {
 		return nil, NewClientError(err)
 	}
 	defer r.Body.Close()
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, failReadResponseError(err)
+	}
 	if r.StatusCode != http.StatusOK {
 		err := &Error{}
 		if jErr := json.Unmarshal(buf, err); jErr != nil {
@@ -192,11 +195,14 @@ func (s *LogStore) PutRawLog(rawLogData []byte) (err error) {
 		return NewClientError(err)
 	}
 	defer r.Body.Close()
-	body, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return failReadResponseError(err)
+	}
 	if r.StatusCode != http.StatusOK {
 		err := new(Error)
-		if jErr := json.Unmarshal(body, err); jErr != nil {
-			return NewBadResponseError(string(body), r.Header, r.StatusCode)
+		if jErr := json.Unmarshal(buf, err); jErr != nil {
+			return NewBadResponseError(string(buf), r.Header, r.StatusCode)
 		}
 		return err
 	}
@@ -262,11 +268,15 @@ func (s *LogStore) PostRawLogs(body []byte, hashKey *string) (err error) {
 		return NewClientError(err)
 	}
 	defer r.Body.Close()
-	body, _ = ioutil.ReadAll(r.Body)
+
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return failReadResponseError(err)
+	}
 	if r.StatusCode != http.StatusOK {
 		err := new(Error)
-		if jErr := json.Unmarshal(body, err); jErr != nil {
-			return NewBadResponseError(string(body), r.Header, r.StatusCode)
+		if jErr := json.Unmarshal(buf, err); jErr != nil {
+			return NewBadResponseError(string(buf), r.Header, r.StatusCode)
 		}
 		return err
 	}
@@ -338,11 +348,15 @@ func (s *LogStore) PutLogs(lg *LogGroup) (err error) {
 		return NewClientError(err)
 	}
 	defer r.Body.Close()
-	body, _ = ioutil.ReadAll(r.Body)
+
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return failReadResponseError(err)
+	}
 	if r.StatusCode != http.StatusOK {
 		err := new(Error)
-		if jErr := json.Unmarshal(body, err); jErr != nil {
-			return NewBadResponseError(string(body), r.Header, r.StatusCode)
+		if jErr := json.Unmarshal(buf, err); jErr != nil {
+			return NewBadResponseError(string(buf), r.Header, r.StatusCode)
 		}
 		return err
 	}
@@ -430,11 +444,14 @@ func (s *LogStore) PostLogStoreLogs(req *PostLogStoreLogsRequest) (err error) {
 		return NewClientError(err)
 	}
 	defer r.Body.Close()
-	body, _ = ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return failReadResponseError(err)
+	}
 	if r.StatusCode != http.StatusOK {
 		err := new(Error)
-		if jErr := json.Unmarshal(body, err); jErr != nil {
-			return NewBadResponseError(string(body), r.Header, r.StatusCode)
+		if jErr := json.Unmarshal(buf, err); jErr != nil {
+			return NewBadResponseError(string(buf), r.Header, r.StatusCode)
 		}
 		return err
 	}
@@ -688,19 +705,22 @@ func (s *LogStore) GetHistogramsV2(ghr *GetHistogramRequest) (*GetHistogramsResp
 		return nil, NewClientError(err)
 	}
 	defer r.Body.Close()
-	body, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, failReadResponseError(err)
+	}
 	if r.StatusCode != http.StatusOK {
 		err := new(Error)
-		if jErr := json.Unmarshal(body, err); jErr != nil {
-			return nil, NewBadResponseError(string(body), r.Header, r.StatusCode)
+		if jErr := json.Unmarshal(buf, err); jErr != nil {
+			return nil, NewBadResponseError(string(buf), r.Header, r.StatusCode)
 		}
 		return nil, err
 	}
 
 	histograms := []SingleHistogram{}
-	err = json.Unmarshal(body, &histograms)
+	err = json.Unmarshal(buf, &histograms)
 	if err != nil {
-		return nil, NewBadResponseError(string(body), r.Header, r.StatusCode)
+		return nil, NewBadResponseError(string(buf), r.Header, r.StatusCode)
 	}
 
 	count, err := strconv.ParseInt(r.Header.Get(GetLogsCountHeader), 10, 64)
@@ -967,7 +987,10 @@ func (s *LogStore) getLogsV3Internal(req *GetLogRequest) (*GetLogsV3Response, *h
 	}
 	defer r.Body.Close()
 
-	respBody, _ := ioutil.ReadAll(r.Body)
+	respBody, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, nil, failReadResponseError(err)
+	}
 	if r.StatusCode != http.StatusOK {
 		err := new(Error)
 		if jErr := json.Unmarshal(respBody, err); jErr != nil {
@@ -1021,11 +1044,14 @@ func (s *LogStore) GetContextLogs(backLines int32, forwardLines int32,
 
 	}
 	defer r.Body.Close()
-	body, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, failReadResponseError(err)
+	}
 	if r.StatusCode != http.StatusOK {
 		err := new(Error)
-		if jErr := json.Unmarshal(body, err); jErr != nil {
-			return nil, NewBadResponseError(string(body), r.Header, r.StatusCode)
+		if jErr := json.Unmarshal(buf, err); jErr != nil {
+			return nil, NewBadResponseError(string(buf), r.Header, r.StatusCode)
 
 		}
 		return nil, err
@@ -1033,9 +1059,9 @@ func (s *LogStore) GetContextLogs(backLines int32, forwardLines int32,
 	}
 
 	resp := GetContextLogsResponse{}
-	err = json.Unmarshal(body, &resp)
+	err = json.Unmarshal(buf, &resp)
 	if err != nil {
-		return nil, NewBadResponseError(string(body), r.Header, r.StatusCode)
+		return nil, NewBadResponseError(string(buf), r.Header, r.StatusCode)
 
 	}
 	return &resp, nil
@@ -1152,10 +1178,13 @@ func (s *LogStore) GetIndex() (*Index, error) {
 	}
 	index := &Index{}
 	defer r.Body.Close()
-	data, _ := ioutil.ReadAll(r.Body)
-	err = json.Unmarshal(data, index)
+	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, NewBadResponseError(string(data), r.Header, r.StatusCode)
+		return nil, failReadResponseError(err)
+	}
+	err = json.Unmarshal(buf, index)
+	if err != nil {
+		return nil, NewBadResponseError(string(buf), r.Header, r.StatusCode)
 	}
 
 	return index, nil

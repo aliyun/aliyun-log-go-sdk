@@ -161,12 +161,16 @@ func (c *Client) HeartBeat(project, logstore string, cgName, consumer string, he
 		return nil, NewClientError(err)
 	}
 	defer r.Body.Close()
-	buf, _ := ioutil.ReadAll(r.Body)
-	var shards []int
-	json.Unmarshal(buf, &shards)
-	for _, v := range shards {
-		shardIDs = append(shardIDs, v)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, failReadResponseError(err)
 	}
+	var shards []int
+	err = json.Unmarshal(buf, &shards)
+	if err != nil {
+		return nil, invalidResponseJsonError(string(buf), r.Header, r.StatusCode)
+	}
+	shardIDs = append(shardIDs, shards...)
 	return shardIDs, nil
 }
 
@@ -212,7 +216,10 @@ func (c *Client) GetCheckpoint(project, logstore string, cgName string) (checkPo
 		return nil, NewClientError(err)
 	}
 	defer r.Body.Close()
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, failReadResponseError(err)
+	}
 	err = json.Unmarshal(buf, &checkPointList)
 	return
 }

@@ -114,7 +114,10 @@ func (c *Client) GetResourceRecord(resourceName, recordId string) (record *Resou
 		return nil, err
 	}
 	defer r.Body.Close()
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, failReadResponseError(err)
+	}
 	record = &ResourceRecord{}
 	if err = json.Unmarshal(buf, record); err != nil {
 		err = NewClientError(err)
@@ -154,7 +157,10 @@ func (c *Client) ListResourceRecord(resourceName string, offset, size int) (reco
 		Count              int               `json:"count"`
 	}
 
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, 0, 0, failReadResponseError(err)
+	}
 	resources := &ListResourceRecordResponse{}
 	if err = json.Unmarshal(buf, resources); err != nil {
 		err = NewClientError(err)

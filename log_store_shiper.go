@@ -103,12 +103,14 @@ func (s *LogStore) ListShipper() ([]string, error) {
 	defer r.Body.Close()
 
 	buf, err := ioutil.ReadAll(r.Body)
-
+	if err != nil {
+		return nil, failReadResponseError(err)
+	}
 	if r.StatusCode != http.StatusOK {
 		slsErr := new(Error)
 		err := json.Unmarshal(buf, slsErr)
 		if err != nil {
-			return nil, invalidResponse(string(buf), r.Header, r.StatusCode)
+			return nil, invalidResponseError(string(buf), r.Header, r.StatusCode)
 		}
 		return nil, slsErr
 	}
@@ -119,6 +121,9 @@ func (s *LogStore) ListShipper() ([]string, error) {
 	}
 
 	body := &Body{}
-	json.Unmarshal(buf, body)
+	err = json.Unmarshal(buf, body)
+	if err != nil {
+		return nil, invalidResponseJsonError(string(buf), r.Header, r.StatusCode)
+	}
 	return body.Shipper, nil
 }

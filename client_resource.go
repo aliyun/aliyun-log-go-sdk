@@ -139,7 +139,10 @@ func (c *Client) GetResource(name string) (resource *Resource, err error) {
 		return nil, err
 	}
 	defer r.Body.Close()
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, failReadResponseError(err)
+	}
 	resource = &Resource{}
 	if err = json.Unmarshal(buf, resource); err != nil {
 		err = NewClientError(err)
@@ -179,7 +182,10 @@ func (c *Client) ListResource(resourceType string, resourceName string, offset, 
 		Count        int         `json:"count"`
 	}
 
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, 0, 0, failReadResponseError(err)
+	}
 	resources := &ListResourceResponse{}
 	if err = json.Unmarshal(buf, resources); err != nil {
 		err = NewClientError(err)

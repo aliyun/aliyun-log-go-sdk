@@ -134,13 +134,16 @@ func (c *Client) request(project, method, uri string, headers map[string]string,
 	if resp.StatusCode != http.StatusOK {
 		slsErr := &Error{}
 		slsErr.HTTPCode = (int32)(resp.StatusCode)
-		defer resp.Body.Close()
-		buf, _ := ioutil.ReadAll(resp.Body)
-		err := json.Unmarshal(buf, slsErr)
-		if err != nil {
-			return nil, invalidResponse(string(buf), resp.Header, resp.StatusCode)
-		}
 		slsErr.RequestID = resp.Header.Get("x-log-requestid")
+		defer resp.Body.Close()
+		buf, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, failReadResponseError(err)
+		}
+		err = json.Unmarshal(buf, slsErr)
+		if err != nil {
+			return nil, invalidResponseError(string(buf), resp.Header, resp.StatusCode)
+		}
 		return nil, slsErr
 	}
 	if IsDebugLevelMatched(5) {

@@ -409,7 +409,10 @@ func (c *Client) GetIngestion(project string, name string) (*Ingestion, error) {
 		return nil, err
 	}
 	defer r.Body.Close()
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, failReadResponseError(err)
+	}
 	ingestion := &Ingestion{}
 	if err = json.Unmarshal(buf, ingestion); err != nil {
 		err = NewClientError(err)
@@ -442,7 +445,10 @@ func (c *Client) ListIngestion(project, logstore, name, displayName string, offs
 		Count   int          `json:"count"`
 		Results []*Ingestion `json:"results"`
 	}
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, 0, 0, failReadResponseError(err)
+	}
 	is := &ingestionList{}
 	if err = json.Unmarshal(buf, is); err != nil {
 		err = NewClientError(err)
@@ -509,7 +515,10 @@ func (c *Client) GetExport(project, name string) (*Export, error) {
 		return nil, err
 	}
 	defer r.Body.Close()
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, failReadResponseError(err)
+	}
 	export := &Export{}
 	if err = json.Unmarshal(buf, export); err != nil {
 		err = NewClientError(err)
@@ -541,7 +550,10 @@ func (c *Client) ListExport(project, logstore, name, displayName string, offset,
 		Count   int       `json:"count"`
 		Results []*Export `json:"results"`
 	}
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, 0, 0, failReadResponseError(err)
+	}
 	el := &exportList{}
 	if err = json.Unmarshal(buf, el); err != nil {
 		err = NewClientError(err)

@@ -16,7 +16,10 @@ func (c *Client) GetProjectPolicy(project string) (policy string, err error) {
 		return "", err
 	}
 	defer r.Body.Close()
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return "", failReadResponseError(err)
+	}
 	policy = string(buf)
 	return policy, nil
 }

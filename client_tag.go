@@ -193,7 +193,10 @@ func (c *Client) ListTagResources(project string,
 		NextToken   string                 `json:"nextToken"`
 		TagResource []*ResourceTagResponse `json:"tagResources"`
 	}
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, "", failReadResponseError(err)
+	}
 	listTagResp := &ListTagResp{}
 	if err = json.Unmarshal(buf, listTagResp); err != nil {
 		err = NewClientError(err)
@@ -283,7 +286,10 @@ func (c *Client) ListSystemTagResources(project string,
 		NextToken   string                 `json:"nextToken"`
 		TagResource []*ResourceTagResponse `json:"tagResources"`
 	}
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, "", failReadResponseError(err)
+	}
 	listTagResp := &ListTagResp{}
 	if err = json.Unmarshal(buf, listTagResp); err != nil {
 		err = NewClientError(err)
