@@ -104,10 +104,10 @@ func (s *LogStore) ListShipper() ([]string, error) {
 
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, failReadResponseError(err)
+		return nil, readResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		return nil, getHttpNot200Error(buf, r.Header, r.StatusCode)
+		return nil, httpStatusNotOkError(buf, r.Header, r.StatusCode)
 	}
 	type Body struct {
 		Count   int
@@ -118,7 +118,7 @@ func (s *LogStore) ListShipper() ([]string, error) {
 	body := &Body{}
 	err = json.Unmarshal(buf, body)
 	if err != nil {
-		return nil, invalidResponseJsonError(string(buf), r.Header, r.StatusCode)
+		return nil, invalidJsonRespError(string(buf), r.Header, r.StatusCode)
 	}
 	return body.Shipper, nil
 }

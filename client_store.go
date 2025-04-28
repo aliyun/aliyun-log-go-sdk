@@ -474,10 +474,10 @@ func (c *Client) CreateSubStore(project, logstore string, sss *SubStore) (err er
 	defer r.Body.Close()
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return failReadResponseError(err)
+		return readResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		getHttpNot200Error(buf, r.Header, r.StatusCode)
+		httpStatusNotOkError(buf, r.Header, r.StatusCode)
 	}
 	return
 }
@@ -501,10 +501,10 @@ func (c *Client) UpdateSubStore(project, logstore string, sss *SubStore) (err er
 	defer r.Body.Close()
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return failReadResponseError(err)
+		return readResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		getHttpNot200Error(buf, r.Header, r.StatusCode)
+		httpStatusNotOkError(buf, r.Header, r.StatusCode)
 	}
 	return
 }
@@ -522,10 +522,10 @@ func (c *Client) DeleteSubStore(project, logstore string, name string) (err erro
 	defer r.Body.Close()
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return failReadResponseError(err)
+		return readResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		getHttpNot200Error(buf, r.Header, r.StatusCode)
+		httpStatusNotOkError(buf, r.Header, r.StatusCode)
 	}
 	return
 }
@@ -586,10 +586,10 @@ func (c *Client) UpdateSubStoreTTL(project, logstore string, ttl int) (err error
 	defer r.Body.Close()
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return failReadResponseError(err)
+		return readResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
-		return getHttpNot200Error(buf, r.Header, r.StatusCode)
+		return httpStatusNotOkError(buf, r.Header, r.StatusCode)
 	}
 	return
 }

@@ -113,7 +113,7 @@ func (c *Client) GetChart(project, dashboardName, chartName string) (chart *Char
 	defer r.Body.Close()
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, failReadResponseError(err)
+		return nil, readResponseError(err)
 	}
 	chart = &Chart{}
 	if err = json.Unmarshal(buf, chart); err != nil {
@@ -225,7 +225,7 @@ func (c *Client) GetDashboard(project, name string) (dashboard *Dashboard, err e
 	defer r.Body.Close()
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, failReadResponseError(err)
+		return nil, readResponseError(err)
 	}
 	dashboard = &Dashboard{}
 	if err = json.Unmarshal(buf, dashboard); err != nil {
@@ -271,7 +271,7 @@ func (c *Client) ListDashboard(project string, dashboardName string, offset, siz
 
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, 0, 0, failReadResponseError(err)
+		return nil, 0, 0, readResponseError(err)
 	}
 	dashboards := &ListDashboardResponse{}
 	if err = json.Unmarshal(buf, dashboards); err != nil {
@@ -304,7 +304,7 @@ func (c *Client) ListDashboardV2(project string, dashboardName string, offset, s
 
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, nil, 0, 0, failReadResponseError(err)
+		return nil, nil, 0, 0, readResponseError(err)
 	}
 	dashboards := &ListDashboardResponse{}
 	if err = json.Unmarshal(buf, dashboards); err != nil {

@@ -195,7 +195,7 @@ func (c *Client) ListTagResources(project string,
 	}
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, "", failReadResponseError(err)
+		return nil, "", readResponseError(err)
 	}
 	listTagResp := &ListTagResp{}
 	if err = json.Unmarshal(buf, listTagResp); err != nil {
@@ -288,7 +288,7 @@ func (c *Client) ListSystemTagResources(project string,
 	}
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, "", failReadResponseError(err)
+		return nil, "", readResponseError(err)
 	}
 	listTagResp := &ListTagResp{}
 	if err = json.Unmarshal(buf, listTagResp); err != nil {

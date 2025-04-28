@@ -175,7 +175,7 @@ func (c *Client) GetScheduledSQL(project string, name string) (*ScheduledSQL, er
 	defer r.Body.Close()
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, failReadResponseError(err)
+		return nil, readResponseError(err)
 	}
 	scheduledSQL := &ScheduledSQL{}
 	if err = json.Unmarshal(buf, scheduledSQL); err != nil {
@@ -212,7 +212,7 @@ func (c *Client) ListScheduledSQL(project, name, displayName string, offset, siz
 	}
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, 0, 0, failReadResponseError(err)
+		return nil, 0, 0, readResponseError(err)
 	}
 	scheduledSqlList := &ScheduledSqlList{}
 	if err = json.Unmarshal(buf, scheduledSqlList); err != nil {
@@ -249,7 +249,7 @@ func (c *Client) GetScheduledSQLJobInstance(projectName, jobName, instanceId str
 	defer r.Body.Close()
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, failReadResponseError(err)
+		return nil, readResponseError(err)
 	}
 	instance := &ScheduledSQLJobInstance{}
 	if err = json.Unmarshal(buf, instance); err != nil {
@@ -313,7 +313,7 @@ func (c *Client) ListScheduledSQLJobInstances(projectName, jobName string, statu
 	}
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, 0, 0, failReadResponseError(err)
+		return nil, 0, 0, readResponseError(err)
 	}
 	jobInstances := &ScheduledSqlJobInstances{}
 	if err = json.Unmarshal(buf, jobInstances); err != nil {

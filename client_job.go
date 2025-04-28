@@ -411,7 +411,7 @@ func (c *Client) GetIngestion(project string, name string) (*Ingestion, error) {
 	defer r.Body.Close()
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, failReadResponseError(err)
+		return nil, readResponseError(err)
 	}
 	ingestion := &Ingestion{}
 	if err = json.Unmarshal(buf, ingestion); err != nil {
@@ -447,7 +447,7 @@ func (c *Client) ListIngestion(project, logstore, name, displayName string, offs
 	}
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, 0, 0, failReadResponseError(err)
+		return nil, 0, 0, readResponseError(err)
 	}
 	is := &ingestionList{}
 	if err = json.Unmarshal(buf, is); err != nil {
@@ -517,7 +517,7 @@ func (c *Client) GetExport(project, name string) (*Export, error) {
 	defer r.Body.Close()
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, failReadResponseError(err)
+		return nil, readResponseError(err)
 	}
 	export := &Export{}
 	if err = json.Unmarshal(buf, export); err != nil {
@@ -552,7 +552,7 @@ func (c *Client) ListExport(project, logstore, name, displayName string, offset,
 	}
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, 0, 0, failReadResponseError(err)
+		return nil, 0, 0, readResponseError(err)
 	}
 	el := &exportList{}
 	if err = json.Unmarshal(buf, el); err != nil {

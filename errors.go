@@ -6,24 +6,28 @@ import (
 	"net/http"
 )
 
-func invalidResponseError(body string, header http.Header, httpCode int) error {
-	reqId := header.Get(RequestIDHeader)
-	return fmt.Errorf("server returned an error response with invalid JSON format, httpCode: %d, reqId: %s, body: %s", httpCode, reqId, body)
+func invalidJsonRespError(body string, header http.Header, httpCode int) error {
+	return newBadResponseError(
+		string(body),
+		header,
+		httpCode,
+		fmt.Errorf("server returned an response with invalid JSON format"),
+	)
 }
 
-func invalidResponseJsonError(body string, header http.Header, httpCode int) error {
-	reqId := header.Get(RequestIDHeader)
-	return fmt.Errorf("server returned an response with invalid JSON format, httpCode: %d, reqId: %s, body: %s", httpCode, reqId, body)
-}
-
-func failReadResponseError(err error) error {
+func readResponseError(err error) error {
 	return fmt.Errorf("fail to read response body: %w", err)
 }
 
-func getHttpNot200Error(body []byte, header http.Header, httpCode int) error {
+func httpStatusNotOkError(body []byte, header http.Header, httpCode int) error {
 	slsErr := new(Error)
 	if err := json.Unmarshal(body, slsErr); err != nil {
-		return invalidResponseError(string(body), header, httpCode)
+		return newBadResponseError(
+			string(body),
+			header,
+			httpCode,
+			fmt.Errorf("server returned an error response with invalid JSON format:%w", err),
+		)
 	}
 	slsErr.HTTPCode = int32(httpCode)
 	slsErr.RequestID = header.Get(RequestIDHeader)
@@ -32,9 +36,10 @@ func getHttpNot200Error(body []byte, header http.Header, httpCode int) error {
 
 // BadResponseError : special sls error, not valid json format
 type BadResponseError struct {
-	RespBody   string
-	RespHeader map[string][]string
-	HTTPCode   int
+	RespBody     string
+	RespHeader   map[string][]string
+	HTTPCode     int
+	ErrorMessage string
 }
 
 func (e BadResponseError) String() string {
@@ -55,6 +60,15 @@ func NewBadResponseError(body string, header map[string][]string, httpCode int) 
 		RespBody:   body,
 		RespHeader: header,
 		HTTPCode:   httpCode,
+	}
+}
+
+func newBadResponseError(body string, header map[string][]string, httpCode int, err error) *BadResponseError {
+	return &BadResponseError{
+		RespBody:     body,
+		RespHeader:   header,
+		HTTPCode:     httpCode,
+		ErrorMessage: err.Error(),
 	}
 }
 

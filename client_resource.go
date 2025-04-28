@@ -141,7 +141,7 @@ func (c *Client) GetResource(name string) (resource *Resource, err error) {
 	defer r.Body.Close()
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, failReadResponseError(err)
+		return nil, readResponseError(err)
 	}
 	resource = &Resource{}
 	if err = json.Unmarshal(buf, resource); err != nil {
@@ -184,7 +184,7 @@ func (c *Client) ListResource(resourceType string, resourceName string, offset, 
 
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, 0, 0, failReadResponseError(err)
+		return nil, 0, 0, readResponseError(err)
 	}
 	resources := &ListResourceResponse{}
 	if err = json.Unmarshal(buf, resources); err != nil {

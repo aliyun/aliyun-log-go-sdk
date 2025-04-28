@@ -163,12 +163,12 @@ func (c *Client) HeartBeat(project, logstore string, cgName, consumer string, he
 	defer r.Body.Close()
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, failReadResponseError(err)
+		return nil, readResponseError(err)
 	}
 	var shards []int
 	err = json.Unmarshal(buf, &shards)
 	if err != nil {
-		return nil, invalidResponseJsonError(string(buf), r.Header, r.StatusCode)
+		return nil, invalidJsonRespError(string(buf), r.Header, r.StatusCode)
 	}
 	shardIDs = append(shardIDs, shards...)
 	return shardIDs, nil
@@ -218,7 +218,7 @@ func (c *Client) GetCheckpoint(project, logstore string, cgName string) (checkPo
 	defer r.Body.Close()
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, failReadResponseError(err)
+		return nil, readResponseError(err)
 	}
 	err = json.Unmarshal(buf, &checkPointList)
 	return

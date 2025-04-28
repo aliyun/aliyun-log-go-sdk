@@ -96,7 +96,7 @@ func (s *LogStore) ListShards() (shardIDs []*Shard, err error) {
 	defer r.Body.Close()
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, failReadResponseError(err)
+		return nil, readResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
 		err := &Error{}
@@ -197,7 +197,7 @@ func (s *LogStore) PutRawLog(rawLogData []byte) (err error) {
 	defer r.Body.Close()
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return failReadResponseError(err)
+		return readResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
 		err := new(Error)
@@ -268,10 +268,9 @@ func (s *LogStore) PostRawLogs(body []byte, hashKey *string) (err error) {
 		return NewClientError(err)
 	}
 	defer r.Body.Close()
-
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return failReadResponseError(err)
+		return readResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
 		err := new(Error)
@@ -348,10 +347,9 @@ func (s *LogStore) PutLogs(lg *LogGroup) (err error) {
 		return NewClientError(err)
 	}
 	defer r.Body.Close()
-
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return failReadResponseError(err)
+		return readResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
 		err := new(Error)
@@ -446,7 +444,7 @@ func (s *LogStore) PostLogStoreLogs(req *PostLogStoreLogsRequest) (err error) {
 	defer r.Body.Close()
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return failReadResponseError(err)
+		return readResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
 		err := new(Error)
@@ -707,7 +705,7 @@ func (s *LogStore) GetHistogramsV2(ghr *GetHistogramRequest) (*GetHistogramsResp
 	defer r.Body.Close()
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, failReadResponseError(err)
+		return nil, readResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
 		err := new(Error)
@@ -989,7 +987,7 @@ func (s *LogStore) getLogsV3Internal(req *GetLogRequest) (*GetLogsV3Response, *h
 
 	respBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, nil, failReadResponseError(err)
+		return nil, nil, readResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
 		err := new(Error)
@@ -1046,7 +1044,7 @@ func (s *LogStore) GetContextLogs(backLines int32, forwardLines int32,
 	defer r.Body.Close()
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, failReadResponseError(err)
+		return nil, readResponseError(err)
 	}
 	if r.StatusCode != http.StatusOK {
 		err := new(Error)
@@ -1180,7 +1178,7 @@ func (s *LogStore) GetIndex() (*Index, error) {
 	defer r.Body.Close()
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, failReadResponseError(err)
+		return nil, readResponseError(err)
 	}
 	err = json.Unmarshal(buf, index)
 	if err != nil {

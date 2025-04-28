@@ -329,7 +329,7 @@ func (c *Client) GetSavedSearch(project string, savedSearchName string) (*SavedS
 	defer r.Body.Close()
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, failReadResponseError(err)
+		return nil, readResponseError(err)
 	}
 	savedSearch := &SavedSearch{}
 	if err = json.Unmarshal(buf, savedSearch); err != nil {
@@ -362,7 +362,7 @@ func (c *Client) ListSavedSearch(project string, savedSearchName string, offset,
 
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, 0, 0, failReadResponseError(err)
+		return nil, 0, 0, readResponseError(err)
 	}
 	listSavedSearch := &ListSavedSearch{}
 	if err = json.Unmarshal(buf, listSavedSearch); err != nil {
@@ -396,7 +396,7 @@ func (c *Client) ListSavedSearchV2(project string, savedSearchName string, offse
 
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, nil, 0, 0, failReadResponseError(err)
+		return nil, nil, 0, 0, readResponseError(err)
 	}
 	listSavedSearch := &ListSavedSearch{}
 	if err = json.Unmarshal(buf, listSavedSearch); err != nil {
@@ -533,7 +533,7 @@ func (c *Client) GetAlert(project string, alertName string) (*Alert, error) {
 	defer r.Body.Close()
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, failReadResponseError(err)
+		return nil, readResponseError(err)
 	}
 	alert := &Alert{}
 	if err = json.Unmarshal(buf, alert); err != nil {
@@ -555,7 +555,7 @@ func (c *Client) GetAlertString(project string, alertName string) (string, error
 	defer r.Body.Close()
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return "", failReadResponseError(err)
+		return "", readResponseError(err)
 	}
 	return string(buf), err
 }
@@ -587,7 +587,7 @@ func (c *Client) ListAlert(project, alertName, dashboard string, offset, size in
 	}
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, 0, 0, failReadResponseError(err)
+		return nil, 0, 0, readResponseError(err)
 	}
 	listAlert := &AlertList{}
 	if err = json.Unmarshal(buf, listAlert); err != nil {

@@ -134,9 +134,9 @@ func (c *Client) request(project, method, uri string, headers map[string]string,
 		defer resp.Body.Close()
 		buf, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return nil, failReadResponseError(err)
+			return nil, readResponseError(err)
 		}
-		return nil, getHttpNot200Error(buf, resp.Header, resp.StatusCode)
+		return nil, httpStatusNotOkError(buf, resp.Header, resp.StatusCode)
 	}
 	if IsDebugLevelMatched(5) {
 		dump, e := httputil.DumpResponse(resp, true)
