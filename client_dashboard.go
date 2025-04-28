@@ -40,10 +40,9 @@ type Dashboard struct {
 }
 
 type ResponseDashboardItem struct {
-	DashboardName string  `json:"dashboardName"`
-	DisplayName   string  `json:"displayName"`
+	DashboardName string `json:"dashboardName"`
+	DisplayName   string `json:"displayName"`
 }
-
 
 func (c *Client) CreateChart(project, dashboardName string, chart Chart) error {
 	body, err := json.Marshal(chart)
@@ -283,14 +282,14 @@ func (c *Client) ListDashboardV2(project string, dashboardName string, offset, s
 	uri := "/dashboards"
 	r, err := c.request(project, "GET", uri, h, nil)
 	if err != nil {
-		return nil, nil,0, 0, err
+		return nil, nil, 0, 0, err
 	}
 	defer r.Body.Close()
 
 	type ListDashboardResponse struct {
-		DashboardList []string `json:"dashboards"`
-		Total         int      `json:"total"`
-		Count         int      `json:"count"`
+		DashboardList  []string                `json:"dashboards"`
+		Total          int                     `json:"total"`
+		Count          int                     `json:"count"`
 		DashboardItems []ResponseDashboardItem `json:"dashboardItems"`
 	}
 

@@ -283,9 +283,12 @@ func (c *Client) GetProject(name string) (*LogProject, error) {
 	defer resp.Body.Close()
 	buf, _ := ioutil.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(buf, err)
-		return nil, err
+		slsErr := new(Error)
+		err := json.Unmarshal(buf, slsErr)
+		if err != nil {
+			return nil, invalidResponse(string(buf), resp.Header, resp.StatusCode)
+		}
+		return nil, slsErr
 	}
 	err = json.Unmarshal(buf, proj)
 	return proj, err
@@ -317,9 +320,12 @@ func (c *Client) ListProject() (projectNames []string, err error) {
 	defer r.Body.Close()
 	buf, _ := ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(buf, err)
-		return nil, err
+		slsErr := new(Error)
+		err := json.Unmarshal(buf, slsErr)
+		if err != nil {
+			return nil, invalidResponse(string(buf), r.Header, r.StatusCode)
+		}
+		return nil, slsErr
 	}
 
 	body := &Body{}
@@ -358,9 +364,12 @@ func (c *Client) ListProjectV2(offset, size int) (projects []LogProject, count, 
 	defer r.Body.Close()
 	buf, _ := ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(buf, err)
-		return nil, 0, 0, err
+		slsErr := new(Error)
+		err := json.Unmarshal(buf, slsErr)
+		if err != nil {
+			return nil, 0, 0, invalidResponse(string(buf), r.Header, r.StatusCode)
+		}
+		return nil, 0, 0, slsErr
 	}
 
 	body := &Body{}

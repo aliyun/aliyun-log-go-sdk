@@ -2,7 +2,13 @@ package sls
 
 import (
 	"encoding/json"
+	"fmt"
 )
+
+func invalidResponse(body string, header map[string][]string, httpCode int) error {
+	reqId := header[RequestIDHeader]
+	return fmt.Errorf("server returned an error response with invalid JSON format, httpCode: %d, reqId: %s, body: %s", httpCode, reqId, body)
+}
 
 // BadResponseError : special sls error, not valid json format
 type BadResponseError struct {

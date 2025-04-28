@@ -11,15 +11,17 @@ import (
 // and do an exponential backoff retry when failed.
 // The default max elapsed time is 15 minutes.
 // The default retry intervals are shown below, in seconds.
-//  1          0.5                     [0.25,   0.75]
-//  2          0.75                    [0.375,  1.125]
-//  3          1.125                   [0.562,  1.687]
-//  4          1.687                   [0.8435, 2.53]
-//  5          2.53                    [1.265,  3.795]
-//  6          3.795                   [1.897,  5.692]
-//  7          5.692                   [2.846,  8.538]
-//  8          8.538                   [4.269, 12.807]
-//  9         12.807                   [6.403, 19.210]
+//
+//	1          0.5                     [0.25,   0.75]
+//	2          0.75                    [0.375,  1.125]
+//	3          1.125                   [0.562,  1.687]
+//	4          1.687                   [0.8435, 2.53]
+//	5          2.53                    [1.265,  3.795]
+//	6          3.795                   [1.897,  5.692]
+//	7          5.692                   [2.846,  8.538]
+//	8          8.538                   [4.269, 12.807]
+//	9         12.807                   [6.403, 19.210]
+//
 // ...
 // The signature of backoff.Operation is "func() error".
 func Retry(ctx context.Context, o backoff.Operation) error {

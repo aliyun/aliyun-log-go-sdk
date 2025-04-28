@@ -132,13 +132,16 @@ func (c *Client) request(project, method, uri string, headers map[string]string,
 
 	// Parse the sls error from body.
 	if resp.StatusCode != http.StatusOK {
-		err := &Error{}
-		err.HTTPCode = (int32)(resp.StatusCode)
+		slsErr := &Error{}
+		slsErr.HTTPCode = (int32)(resp.StatusCode)
 		defer resp.Body.Close()
 		buf, _ := ioutil.ReadAll(resp.Body)
-		json.Unmarshal(buf, err)
-		err.RequestID = resp.Header.Get("x-log-requestid")
-		return nil, err
+		err := json.Unmarshal(buf, slsErr)
+		if err != nil {
+			return nil, invalidResponse(string(buf), resp.Header, resp.StatusCode)
+		}
+		slsErr.RequestID = resp.Header.Get("x-log-requestid")
+		return nil, slsErr
 	}
 	if IsDebugLevelMatched(5) {
 		dump, e := httputil.DumpResponse(resp, true)

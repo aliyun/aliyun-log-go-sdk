@@ -105,14 +105,17 @@ func (s *LogStore) ListShipper() ([]string, error) {
 	buf, err := ioutil.ReadAll(r.Body)
 
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(buf, err)
-		return nil, err
+		slsErr := new(Error)
+		err := json.Unmarshal(buf, slsErr)
+		if err != nil {
+			return nil, invalidResponse(string(buf), r.Header, r.StatusCode)
+		}
+		return nil, slsErr
 	}
-	type Body struct{
-		Count int
+	type Body struct {
+		Count   int
 		Shipper []string
-		Total int
+		Total   int
 	}
 
 	body := &Body{}

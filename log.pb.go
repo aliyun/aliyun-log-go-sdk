@@ -26,8 +26,8 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type LogContent struct {
-	Key                  *string  `protobuf:"bytes,1,req,name=Key" json:"Key,omitempty"`
-	Value                *string  `protobuf:"bytes,2,req,name=Value" json:"Value,omitempty"`
+	Key                  *string `protobuf:"bytes,1,req,name=Key" json:"Key,omitempty"`
+	Value                *string `protobuf:"bytes,2,req,name=Value" json:"Value,omitempty"`
 	_key                 string
 	_value               string
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -146,8 +146,8 @@ func (m *Log) GetTimeNs() uint32 {
 }
 
 type LogTag struct {
-	Key                  *string  `protobuf:"bytes,1,req,name=Key" json:"Key,omitempty"`
-	Value                *string  `protobuf:"bytes,2,req,name=Value" json:"Value,omitempty"`
+	Key                  *string `protobuf:"bytes,1,req,name=Key" json:"Key,omitempty"`
+	Value                *string `protobuf:"bytes,2,req,name=Value" json:"Value,omitempty"`
 	_key                 string
 	_value               string
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`

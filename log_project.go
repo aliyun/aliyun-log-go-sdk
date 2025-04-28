@@ -144,9 +144,12 @@ func (p *LogProject) ListLogStore() ([]string, error) {
 	defer r.Body.Close()
 	buf, _ := ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(buf, err)
-		return nil, err
+		slsErr := new(Error)
+		err := json.Unmarshal(buf, slsErr)
+		if err != nil {
+			return nil, invalidResponse(string(buf), r.Header, r.StatusCode)
+		}
+		return nil, slsErr
 	}
 
 	type Body struct {
@@ -173,9 +176,12 @@ func (p *LogProject) ListLogStoreV2(offset, size int, telemetryType string) ([]s
 	defer r.Body.Close()
 	buf, _ := ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(buf, err)
-		return nil, err
+		slsErr := new(Error)
+		err := json.Unmarshal(buf, slsErr)
+		if err != nil {
+			return nil, invalidResponse(string(buf), r.Header, r.StatusCode)
+		}
+		return nil, slsErr
 	}
 
 	type Body struct {
@@ -201,9 +207,12 @@ func (p *LogProject) GetLogStore(name string) (*LogStore, error) {
 	defer r.Body.Close()
 	buf, _ := ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(buf, err)
-		return nil, err
+		slsErr := new(Error)
+		err := json.Unmarshal(buf, slsErr)
+		if err != nil {
+			return nil, invalidResponse(string(buf), r.Header, r.StatusCode)
+		}
+		return nil, slsErr
 	}
 
 	s := &LogStore{}
@@ -253,9 +262,12 @@ func (p *LogProject) CreateLogStore(name string, ttl, shardCnt int, autoSplit bo
 	defer r.Body.Close()
 	body, _ = ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(body, err)
-		return err
+		slsErr := new(Error)
+		err := json.Unmarshal(body, slsErr)
+		if err != nil {
+			return invalidResponse(string(body), r.Header, r.StatusCode)
+		}
+		return slsErr
 	}
 	return nil
 }
@@ -280,9 +292,12 @@ func (p *LogProject) CreateLogStoreV2(logstore *LogStore) error {
 	defer r.Body.Close()
 	body, _ = ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(body, err)
-		return err
+		slsErr := new(Error)
+		err := json.Unmarshal(body, slsErr)
+		if err != nil {
+			return invalidResponse(string(body), r.Header, r.StatusCode)
+		}
+		return slsErr
 	}
 	return nil
 }
@@ -300,9 +315,12 @@ func (p *LogProject) DeleteLogStore(name string) (err error) {
 	defer r.Body.Close()
 	body, _ := ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(body, err)
-		return err
+		slsErr := new(Error)
+		err := json.Unmarshal(body, slsErr)
+		if err != nil {
+			return invalidResponse(string(body), r.Header, r.StatusCode)
+		}
+		return slsErr
 	}
 	return nil
 }
@@ -337,9 +355,12 @@ func (p *LogProject) UpdateLogStore(name string, ttl, shardCnt int) (err error) 
 	defer r.Body.Close()
 	body, _ = ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(body, err)
-		return err
+		slsErr := new(Error)
+		err := json.Unmarshal(body, slsErr)
+		if err != nil {
+			return invalidResponse(string(body), r.Header, r.StatusCode)
+		}
+		return slsErr
 	}
 	return nil
 }
@@ -364,9 +385,12 @@ func (p *LogProject) UpdateLogStoreV2(logstore *LogStore) (err error) {
 	defer r.Body.Close()
 	body, _ = ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(body, err)
-		return err
+		slsErr := new(Error)
+		err := json.Unmarshal(body, slsErr)
+		if err != nil {
+			return invalidResponse(string(body), r.Header, r.StatusCode)
+		}
+		return slsErr
 	}
 	return nil
 }
@@ -388,9 +412,12 @@ func (p *LogProject) ListMachineGroup(offset, size int) (m []string, total int, 
 	defer r.Body.Close()
 	buf, _ := ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(buf, err)
-		return nil, 0, err
+		slsErr := new(Error)
+		err := json.Unmarshal(buf, slsErr)
+		if err != nil {
+			return nil, 0, invalidResponse(string(buf), r.Header, r.StatusCode)
+		}
+		return nil, 0, slsErr
 	}
 
 	type Body struct {
@@ -458,9 +485,12 @@ func (p *LogProject) GetMachineGroup(name string) (m *MachineGroup, err error) {
 	defer r.Body.Close()
 	buf, _ := ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(buf, err)
-		return nil, err
+		slsErr := new(Error)
+		err := json.Unmarshal(buf, slsErr)
+		if err != nil {
+			return nil, invalidResponse(string(buf), r.Header, r.StatusCode)
+		}
+		return nil, slsErr
 	}
 
 	m = new(MachineGroup)
@@ -487,9 +517,12 @@ func (p *LogProject) CreateMachineGroup(m *MachineGroup) error {
 	defer r.Body.Close()
 	body, _ = ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(body, err)
-		return err
+		slsErr := new(Error)
+		err := json.Unmarshal(body, slsErr)
+		if err != nil {
+			return invalidResponse(string(body), r.Header, r.StatusCode)
+		}
+		return slsErr
 	}
 	return nil
 }
@@ -513,9 +546,12 @@ func (p *LogProject) UpdateMachineGroup(m *MachineGroup) (err error) {
 	defer r.Body.Close()
 	body, _ = ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(body, err)
-		return err
+		slsErr := new(Error)
+		err := json.Unmarshal(body, slsErr)
+		if err != nil {
+			return invalidResponse(string(body), r.Header, r.StatusCode)
+		}
+		return slsErr
 	}
 	return nil
 }
@@ -532,9 +568,12 @@ func (p *LogProject) DeleteMachineGroup(name string) (err error) {
 	defer r.Body.Close()
 	body, _ := ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(body, err)
-		return err
+		slsErr := new(Error)
+		err := json.Unmarshal(body, slsErr)
+		if err != nil {
+			return invalidResponse(string(body), r.Header, r.StatusCode)
+		}
+		return slsErr
 	}
 
 	return nil
@@ -557,9 +596,12 @@ func (p *LogProject) ListConfig(offset, size int) (cfgNames []string, total int,
 	defer r.Body.Close()
 	buf, _ := ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(buf, err)
-		return nil, 0, err
+		slsErr := new(Error)
+		err := json.Unmarshal(buf, slsErr)
+		if err != nil {
+			return nil, 0, invalidResponse(string(buf), r.Header, r.StatusCode)
+		}
+		return nil, 0, slsErr
 	}
 
 	type Body struct {
@@ -605,9 +647,12 @@ func (p *LogProject) GetConfig(name string) (c *LogConfig, err error) {
 	defer r.Body.Close()
 	buf, _ := ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(buf, err)
-		return nil, err
+		slsErr := new(Error)
+		err := json.Unmarshal(buf, slsErr)
+		if err != nil {
+			return nil, invalidResponse(string(buf), r.Header, r.StatusCode)
+		}
+		return nil, slsErr
 	}
 
 	c = &LogConfig{}
@@ -638,9 +683,12 @@ func (p *LogProject) UpdateConfig(c *LogConfig) (err error) {
 	defer r.Body.Close()
 	body, _ = ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(body, err)
-		return err
+		slsErr := new(Error)
+		err := json.Unmarshal(body, slsErr)
+		if err != nil {
+			return invalidResponse(string(body), r.Header, r.StatusCode)
+		}
+		return slsErr
 	}
 	return nil
 }
@@ -664,9 +712,12 @@ func (p *LogProject) CreateConfig(c *LogConfig) (err error) {
 	defer r.Body.Close()
 	body, err = ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(body, err)
-		return err
+		slsErr := new(Error)
+		err := json.Unmarshal(body, slsErr)
+		if err != nil {
+			return invalidResponse(string(body), r.Header, r.StatusCode)
+		}
+		return slsErr
 	}
 	return nil
 }
@@ -683,9 +734,12 @@ func (p *LogProject) GetConfigString(name string) (c string, err error) {
 	defer r.Body.Close()
 	buf, err := ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(buf, err)
-		return "", err
+		slsErr := new(Error)
+		err := json.Unmarshal(buf, slsErr)
+		if err != nil {
+			return "", invalidResponse(string(buf), r.Header, r.StatusCode)
+		}
+		return "", slsErr
 	}
 	if IsDebugLevelMatched(4) {
 		level.Info(Logger).Log("msg", "Get logtail config, result", c)
@@ -709,9 +763,12 @@ func (p *LogProject) UpdateConfigString(configName, c string) (err error) {
 	defer r.Body.Close()
 	body, _ = ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(body, err)
-		return err
+		slsErr := new(Error)
+		err := json.Unmarshal(body, slsErr)
+		if err != nil {
+			return invalidResponse(string(body), r.Header, r.StatusCode)
+		}
+		return slsErr
 	}
 	return nil
 }
@@ -731,9 +788,12 @@ func (p *LogProject) CreateConfigString(c string) (err error) {
 	defer r.Body.Close()
 	body, err = ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(body, err)
-		return err
+		slsErr := new(Error)
+		err := json.Unmarshal(body, slsErr)
+		if err != nil {
+			return invalidResponse(string(body), r.Header, r.StatusCode)
+		}
+		return slsErr
 	}
 	return nil
 }
@@ -750,9 +810,12 @@ func (p *LogProject) DeleteConfig(name string) (err error) {
 	defer r.Body.Close()
 	body, _ := ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(body, err)
-		return err
+		slsErr := new(Error)
+		err := json.Unmarshal(body, slsErr)
+		if err != nil {
+			return invalidResponse(string(body), r.Header, r.StatusCode)
+		}
+		return slsErr
 	}
 
 	return nil
@@ -771,9 +834,12 @@ func (p *LogProject) GetAppliedMachineGroups(confName string) (groupNames []stri
 	defer r.Body.Close()
 	buf, _ := ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(buf, err)
-		return nil, err
+		slsErr := new(Error)
+		err := json.Unmarshal(buf, slsErr)
+		if err != nil {
+			return nil, invalidResponse(string(buf), r.Header, r.StatusCode)
+		}
+		return nil, slsErr
 	}
 
 	type Body struct {
@@ -799,9 +865,12 @@ func (p *LogProject) GetAppliedConfigs(groupName string) (confNames []string, er
 	defer r.Body.Close()
 	buf, _ := ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(buf, err)
-		return nil, err
+		slsErr := new(Error)
+		err := json.Unmarshal(buf, slsErr)
+		if err != nil {
+			return nil, invalidResponse(string(buf), r.Header, r.StatusCode)
+		}
+		return nil, slsErr
 	}
 
 	type Cfg struct {
@@ -827,9 +896,12 @@ func (p *LogProject) ApplyConfigToMachineGroup(confName, groupName string) (err 
 	defer r.Body.Close()
 	buf, _ := ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(buf, err)
-		return err
+		slsErr := new(Error)
+		err := json.Unmarshal(buf, slsErr)
+		if err != nil {
+			return invalidResponse(string(buf), r.Header, r.StatusCode)
+		}
+		return slsErr
 	}
 
 	return nil
@@ -848,9 +920,12 @@ func (p *LogProject) RemoveConfigFromMachineGroup(confName, groupName string) (e
 	defer r.Body.Close()
 	buf, _ := ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(buf, err)
-		return err
+		slsErr := new(Error)
+		err := json.Unmarshal(buf, slsErr)
+		if err != nil {
+			return invalidResponse(string(buf), r.Header, r.StatusCode)
+		}
+		return slsErr
 	}
 
 	return nil
@@ -874,9 +949,12 @@ func (p *LogProject) CreateEtlMeta(etlMeta *EtlMeta) (err error) {
 	defer r.Body.Close()
 	body, err = ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(body, err)
-		return err
+		slsErr := new(Error)
+		err := json.Unmarshal(body, slsErr)
+		if err != nil {
+			return invalidResponse(string(body), r.Header, r.StatusCode)
+		}
+		return slsErr
 	}
 	return nil
 }
@@ -899,9 +977,12 @@ func (p *LogProject) UpdateEtlMeta(etlMeta *EtlMeta) (err error) {
 	defer r.Body.Close()
 	body, _ = ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(body, err)
-		return err
+		slsErr := new(Error)
+		err := json.Unmarshal(body, slsErr)
+		if err != nil {
+			return invalidResponse(string(body), r.Header, r.StatusCode)
+		}
+		return slsErr
 	}
 	return nil
 }
@@ -918,9 +999,12 @@ func (p *LogProject) DeleteEtlMeta(etlMetaName, etlMetaKey string) (err error) {
 	defer r.Body.Close()
 	body, _ := ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(body, err)
-		return err
+		slsErr := new(Error)
+		err := json.Unmarshal(body, slsErr)
+		if err != nil {
+			return invalidResponse(string(body), r.Header, r.StatusCode)
+		}
+		return slsErr
 	}
 	return nil
 }
@@ -937,9 +1021,12 @@ func (p *LogProject) listEtlMeta(etlMetaName, etlMetaKey, etlMetaTag string, off
 	defer r.Body.Close()
 	buf, _ := ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(buf, err)
-		return 0, 0, nil, err
+		slsErr := new(Error)
+		err := json.Unmarshal(buf, slsErr)
+		if err != nil {
+			return 0, 0, nil, invalidResponse(string(buf), r.Header, r.StatusCode)
+		}
+		return 0, 0, nil, slsErr
 	}
 	type BodyMeta struct {
 		MetaName  string `json:"etlMetaName"`
@@ -1004,9 +1091,12 @@ func (p *LogProject) ListEtlMetaName(offset, size int) (total int, count int, et
 	defer r.Body.Close()
 	buf, _ := ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(buf, err)
-		return 0, 0, nil, err
+		slsErr := new(Error)
+		err := json.Unmarshal(buf, slsErr)
+		if err != nil {
+			return 0, 0, nil, invalidResponse(string(buf), r.Header, r.StatusCode)
+		}
+		return 0, 0, nil, slsErr
 	}
 	type Body struct {
 		Total        int      `json:"total"`
@@ -1036,9 +1126,12 @@ func (p *LogProject) CreateLogging(detail *Logging) (err error) {
 	defer r.Body.Close()
 	body, err = ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(body, err)
-		return err
+		slsErr := new(Error)
+		err := json.Unmarshal(body, slsErr)
+		if err != nil {
+			return invalidResponse(string(body), r.Header, r.StatusCode)
+		}
+		return slsErr
 	}
 	return nil
 }
@@ -1061,9 +1154,12 @@ func (p *LogProject) UpdateLogging(detail *Logging) (err error) {
 	defer r.Body.Close()
 	body, _ = ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(body, err)
-		return err
+		slsErr := new(Error)
+		err := json.Unmarshal(body, slsErr)
+		if err != nil {
+			return invalidResponse(string(body), r.Header, r.StatusCode)
+		}
+		return slsErr
 	}
 	return nil
 }
@@ -1079,9 +1175,12 @@ func (p *LogProject) GetLogging() (c *Logging, err error) {
 	defer r.Body.Close()
 	buf, _ := ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(buf, err)
-		return nil, err
+		slsErr := new(Error)
+		err := json.Unmarshal(buf, slsErr)
+		if err != nil {
+			return nil, invalidResponse(string(buf), r.Header, r.StatusCode)
+		}
+		return nil, slsErr
 	}
 
 	c = &Logging{}
@@ -1105,9 +1204,12 @@ func (p *LogProject) DeleteLogging() (err error) {
 	defer r.Body.Close()
 	body, _ := ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(body, err)
-		return err
+		slsErr := new(Error)
+		err := json.Unmarshal(body, slsErr)
+		if err != nil {
+			return invalidResponse(string(body), r.Header, r.StatusCode)
+		}
+		return slsErr
 	}
 	return nil
 }

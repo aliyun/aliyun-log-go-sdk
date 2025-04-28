@@ -474,9 +474,12 @@ func (c *Client) CreateSubStore(project, logstore string, sss *SubStore) (err er
 	defer r.Body.Close()
 	body, err = ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(body, err)
-		return err
+		slsErr := new(Error)
+		err := json.Unmarshal(body, slsErr)
+		if err != nil {
+			return invalidResponse(string(body), r.Header, r.StatusCode)
+		}
+		return slsErr
 	}
 	return
 }
@@ -500,9 +503,12 @@ func (c *Client) UpdateSubStore(project, logstore string, sss *SubStore) (err er
 	defer r.Body.Close()
 	body, err = ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(body, err)
-		return err
+		slsErr := new(Error)
+		err := json.Unmarshal(body, slsErr)
+		if err != nil {
+			return invalidResponse(string(body), r.Header, r.StatusCode)
+		}
+		return slsErr
 	}
 	return
 }
@@ -520,9 +526,12 @@ func (c *Client) DeleteSubStore(project, logstore string, name string) (err erro
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(body, err)
-		return err
+		slsErr := new(Error)
+		err := json.Unmarshal(body, slsErr)
+		if err != nil {
+			return invalidResponse(string(body), r.Header, r.StatusCode)
+		}
+		return slsErr
 	}
 	return
 }
@@ -583,9 +592,12 @@ func (c *Client) UpdateSubStoreTTL(project, logstore string, ttl int) (err error
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
 	if r.StatusCode != http.StatusOK {
-		err := new(Error)
-		json.Unmarshal(body, err)
-		return err
+		slsErr := new(Error)
+		err := json.Unmarshal(body, slsErr)
+		if err != nil {
+			return invalidResponse(string(body), r.Header, r.StatusCode)
+		}
+		return slsErr
 	}
 	return
 }
