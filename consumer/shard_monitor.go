@@ -1,23 +1,23 @@
 package consumerLibrary
 
 import (
-	"fmt"
-	"math"
 	"time"
 
 	"go.uber.org/atomic"
 
 	sls "github.com/aliyun/aliyun-log-go-sdk"
+	"github.com/aliyun/aliyun-log-go-sdk/internal"
 	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 )
 
 type MonitorMetrics struct {
 	fetchReqFailedCount atomic.Int64
 	logRawSize          atomic.Int64
-	fetchLogHistogram   TimeHistogram // in us
+	fetchLogHistogram   internal.TimeHistogram // in us
 
 	processFailedCount atomic.Int64
-	processHistogram   TimeHistogram // in us
+	processHistogram   internal.TimeHistogram // in us
 }
 
 type ShardMonitor struct {
@@ -69,48 +69,11 @@ func (m *ShardMonitor) shouldReport() bool {
 func (m *ShardMonitor) reportByLogger(logger log.Logger) {
 	m.lastReportTime = time.Now()
 	metrics := m.getAndResetMetrics()
-	logger.Log("msg", "report status",
+	level.Info(logger).Log("msg", "report status",
 		"fetchFailed", metrics.fetchReqFailedCount.Load(),
 		"logRawSize", metrics.logRawSize.Load(),
 		"processFailed", metrics.processFailedCount.Load(),
 		"fetch", metrics.fetchLogHistogram.String(),
 		"process", metrics.processHistogram.String(),
 	)
-}
-
-type TimeHistogram struct {
-	Count     atomic.Int64
-	Sum       atomic.Float64
-	SumSquare atomic.Float64
-}
-
-func (h *TimeHistogram) AddSample(v float64) {
-	h.Count.Inc()
-	h.Sum.Add(v)
-	h.SumSquare.Add(v * v)
-}
-
-func (h *TimeHistogram) String() string {
-	avg := h.Avg()
-	stdDev := h.StdDev()
-	count := h.Count.Load()
-	return fmt.Sprintf("{avg: %.1fus, stdDev: %.1fus, count: %d}", avg, stdDev, count)
-}
-
-func (h *TimeHistogram) Avg() float64 {
-	count := h.Count.Load()
-	if count == 0 {
-		return 0
-	}
-	return h.Sum.Load() / float64(count)
-}
-
-func (h *TimeHistogram) StdDev() float64 {
-	count := h.Count.Load()
-	if count < 2 {
-		return 0
-	}
-	div := float64(count * (count - 1))
-	num := (float64(count) * h.SumSquare.Load()) - math.Pow(h.Sum.Load(), 2)
-	return math.Sqrt(num / div)
 }

@@ -13,7 +13,7 @@ import (
 
 	"github.com/go-kit/kit/log/level"
 	"github.com/gogo/protobuf/proto"
-	"github.com/pierrec/lz4"
+	"github.com/pierrec/lz4/v4"
 )
 
 // this file is deprecated and no maintenance
@@ -351,18 +351,21 @@ func (s *LogStore) PutLogs(lg *LogGroup) (err error) {
 
 // PostLogStoreLogs put logs into Shard logstore by hashKey.
 // The callers should transform user logs into LogGroup.
-func (s *LogStore) PostLogStoreLogs(lg *LogGroup, hashKey *string) (err error) {
-	if len(lg.Logs) == 0 {
+func (s *LogStore) PostLogStoreLogs(req *PostLogStoreLogsRequest) (err error) {
+	if err = s.SetPutLogCompressType(req.CompressType); err != nil {
+		return err
+	}
+
+	if req.LogGroup == nil || len(req.LogGroup.Logs) == 0 {
 		// empty log group or empty hashkey
 		return nil
 	}
 
-	if hashKey == nil || *hashKey == "" || s.useMetricStoreURL {
-		// empty hash call PutLogs
-		return s.PutLogs(lg)
+	if s.useMetricStoreURL {
+		return s.PutLogs(req.LogGroup)
 	}
 
-	body, err := proto.Marshal(lg)
+	body, err := proto.Marshal(req.LogGroup)
 	if err != nil {
 		return NewClientError(err)
 	}
@@ -409,7 +412,19 @@ func (s *LogStore) PostLogStoreLogs(lg *LogGroup, hashKey *string) (err error) {
 		outLen = len(out)
 	}
 
-	uri := fmt.Sprintf("/logstores/%v/shards/route?key=%v", s.Name, *hashKey)
+	var uri = fmt.Sprintf("/logstores/%s", s.Name)
+	var params = url.Values{}
+	if req.HashKey != nil && *req.HashKey != "" {
+		params.Set("key", *req.HashKey)
+		uri = fmt.Sprintf("/logstores/%s/shards/route", s.Name)
+	}
+	if req.Processor != "" {
+		params.Set("processor", req.Processor)
+	}
+	if len(params) > 0 {
+		uri = fmt.Sprintf("%s?%s", uri, params.Encode())
+	}
+
 	r, err := request(s.project, "POST", uri, h, out[:outLen])
 	if err != nil {
 		return NewClientError(err)
@@ -650,18 +665,22 @@ func (s *LogStore) PullLogsWithQuery(plr *PullLogRequest) (gl *LogGroupList, plm
 
 // GetHistograms query logs with [from, to) time range
 func (s *LogStore) GetHistograms(topic string, from int64, to int64, queryExp string) (*GetHistogramsResponse, error) {
+	return s.GetHistogramsV2(&GetHistogramRequest{
+		Topic: topic,
+		From:  from,
+		To:    to,
+		Query: queryExp,
+	})
+}
+
+func (s *LogStore) GetHistogramsV2(ghr *GetHistogramRequest) (*GetHistogramsResponse, error) {
 
 	h := map[string]string{
 		"x-log-bodyrawsize": "0",
 		"Accept":            "application/json",
 	}
 
-	urlVal := url.Values{}
-	urlVal.Add("type", "histogram")
-	urlVal.Add("from", strconv.Itoa(int(from)))
-	urlVal.Add("to", strconv.Itoa(int(to)))
-	urlVal.Add("topic", topic)
-	urlVal.Add("query", queryExp)
+	urlVal := ghr.ToURLParams()
 
 	uri := fmt.Sprintf("/logstores/%s?%s", s.Name, urlVal.Encode())
 	r, err := request(s.project, "GET", uri, h, nil)
@@ -857,6 +876,20 @@ func (s *LogStore) GetHistogramsToCompleted(topic string, from int64, to int64, 
 	var err error
 	f := func() (bool, error) {
 		res, err = s.GetHistograms(topic, from, to, queryExp)
+		if err == nil {
+			return res.IsComplete(), nil
+		}
+		return false, err
+	}
+	s.getToCompleted(f)
+	return res, err
+}
+
+func (s *LogStore) GetHistogramsToCompletedV2(ghr *GetHistogramRequest) (*GetHistogramsResponse, error) {
+	var res *GetHistogramsResponse
+	var err error
+	f := func() (bool, error) {
+		res, err = s.GetHistogramsV2(ghr)
 		if err == nil {
 			return res.IsComplete(), nil
 		}

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+
 	sls "github.com/aliyun/aliyun-log-go-sdk"
 	"github.com/aliyun/aliyun-log-go-sdk/example/util"
 )
@@ -27,8 +28,8 @@ func main() {
 
 	s3Source := sls.S3Source{
 		DataSource:         sls.DataSource{DataSourceType: sls.DataSourceS3},
-		AWSAccessKey:       util.AWSAccessKey,
-		AWSAccessKeySecret: util.AWSAccessKeySecret,
+		AWSAccessKey:       util.AccessKeyID,
+		AWSAccessKeySecret: util.AccessKeySecret,
 		AWSRegion:          "", // TODO
 		Bucket:             "", // TODO
 		Prefix:             "", // TODO

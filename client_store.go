@@ -100,7 +100,11 @@ func (c *Client) PutLogs(project, logstore string, lg *LogGroup) (err error) {
 // The callers should transform user logs into LogGroup.
 func (c *Client) PostLogStoreLogs(project, logstore string, lg *LogGroup, hashKey *string) (err error) {
 	ls := convertLogstore(c, project, logstore)
-	return ls.PostLogStoreLogs(lg, hashKey)
+	req := &PostLogStoreLogsRequest{
+		LogGroup: lg,
+		HashKey:  hashKey,
+	}
+	return ls.PostLogStoreLogs(req)
 }
 
 func (c *Client) PutLogsWithMetricStoreURL(project, logstore string, lg *LogGroup) (err error) {
@@ -111,10 +115,7 @@ func (c *Client) PutLogsWithMetricStoreURL(project, logstore string, lg *LogGrou
 
 func (c *Client) PostLogStoreLogsV2(project, logstore string, req *PostLogStoreLogsRequest) (err error) {
 	ls := convertLogstore(c, project, logstore)
-	if err := ls.SetPutLogCompressType(req.CompressType); err != nil {
-		return err
-	}
-	return ls.PostLogStoreLogs(req.LogGroup, req.HashKey)
+	return ls.PostLogStoreLogs(req)
 }
 
 // PostRawLogWithCompressType put raw log data to log service, no marshal
@@ -247,10 +248,20 @@ func (c *Client) GetHistograms(project, logstore string, topic string, from int6
 	return ls.GetHistograms(topic, from, to, queryExp)
 }
 
+func (c *Client) GetHistogramsV2(project, logstore string, ghr *GetHistogramRequest) (*GetHistogramsResponse, error) {
+	ls := convertLogstore(c, project, logstore)
+	return ls.GetHistogramsV2(ghr)
+}
+
 // GetHistogramsToCompleted query logs with [from, to) time range to completed
 func (c *Client) GetHistogramsToCompleted(project, logstore string, topic string, from int64, to int64, queryExp string) (*GetHistogramsResponse, error) {
 	ls := convertLogstore(c, project, logstore)
 	return ls.GetHistogramsToCompleted(topic, from, to, queryExp)
+}
+
+func (c *Client) GetHistogramsToCompletedV2(project, logstore string, ghr *GetHistogramRequest) (*GetHistogramsResponse, error) {
+	ls := convertLogstore(c, project, logstore)
+	return ls.GetHistogramsToCompletedV2(ghr)
 }
 
 // GetLogs query logs with [from, to) time range

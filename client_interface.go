@@ -8,13 +8,12 @@ import (
 )
 
 // CreateNormalInterface create a normal client.
-//
-// Deprecated: use CreateNormalInterfaceV2 instead.
+// Prefer to use CreateNormalInterfaceV2 instead.
 // If you keep using long-lived AccessKeyID and AccessKeySecret,
 // use the example code below.
 //
-//	  provider := NewStaticCredentialsProvider(accessKeyID, accessKeySecret, securityToken)
-//		client := CreateNormalInterfaceV2(endpoint, provider)
+//	provider := NewStaticCredentialsProvider(accessKeyID, accessKeySecret, securityToken)
+//	client := CreateNormalInterfaceV2(endpoint, provider)
 func CreateNormalInterface(endpoint, accessKeyID, accessKeySecret, securityToken string) ClientInterface {
 	client := &Client{
 		Endpoint:        endpoint,
@@ -120,6 +119,9 @@ type ClientInterface interface {
 	// #################### Logstore Operations #####################
 	// ListLogStore returns all logstore names of project p.
 	ListLogStore(project string) ([]string, error)
+	// ListLogStoresV2 returns all logstore names of project p with pagination.
+	// @param telemetryType: telemetry type, "None" for all logstore and metricStore, "Metrics" for metricStore
+	ListLogStoreV2(project string, offset, size int, telemetryType string) ([]string, error)
 	// GetLogStore returns logstore according by logstore name.
 	GetLogStore(project string, logstore string) (*LogStore, error)
 	// CreateLogStore creates a new logstore in SLS
@@ -201,6 +203,15 @@ type ClientInterface interface {
 	UpdateMachineGroup(project string, m *MachineGroup) (err error)
 	// DeleteMachineGroup deletes machine group according machine group name.
 	DeleteMachineGroup(project string, machineGroup string) (err error)
+
+	CreateMetricConfig(project string, metricStore string, metricConfig *MetricsConfig) error
+
+	DeleteMetricConfig(project string, metricStore string) error
+
+	UpdateMetricConfig(project string, metricStore string, metricConfig *MetricsConfig) error
+
+	GetMetricConfig(project string, metricStore string) (*MetricsConfig, error)
+
 	// ListConfig returns config names list and the total number of configs.
 	// The offset starts from 0 and the size is the max number of configs could be returned.
 	ListConfig(project string, offset, size int) (cfgNames []string, total int, err error)
@@ -299,6 +310,7 @@ type ClientInterface interface {
 	PullLogsWithQuery(plr *PullLogRequest) (gl *LogGroupList, plm *PullLogMeta, err error)
 	// GetHistograms query logs with [from, to) time range
 	GetHistograms(project, logstore string, topic string, from int64, to int64, queryExp string) (*GetHistogramsResponse, error)
+	GetHistogramsV2(project, logstore string, ghr *GetHistogramRequest) (*GetHistogramsResponse, error)
 	// GetLogs query logs with [from, to) time range
 	GetLogs(project, logstore string, topic string, from int64, to int64, queryExp string,
 		maxLineNum int64, offset int64, reverse bool) (*GetLogsResponse, error)
@@ -316,6 +328,7 @@ type ClientInterface interface {
 
 	// GetHistogramsToCompleted query logs with [from, to) time range to completed
 	GetHistogramsToCompleted(project, logstore string, topic string, from int64, to int64, queryExp string) (*GetHistogramsResponse, error)
+	GetHistogramsToCompletedV2(project, logstore string, ghr *GetHistogramRequest) (*GetHistogramsResponse, error)
 	// GetLogsToCompleted query logs with [from, to) time range to completed
 	GetLogsToCompleted(project, logstore string, topic string, from int64, to int64, queryExp string, maxLineNum int64, offset int64, reverse bool) (*GetLogsResponse, error)
 	// GetLogsToCompletedV2 query logs with [from, to) time range to completed

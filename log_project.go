@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
-	"net/url"
+	"reflect"
 	"regexp"
 	"strings"
 	"time"
@@ -46,13 +47,13 @@ type LogProject struct {
 	DataRedundancyType string `json:"dataRedundancyType,omitempty"` // data redundancy type, valid values: ['LRS', 'ZRS']
 	Location           string `json:"location,omitempty"`           // location, eg. cn-beijing-b
 
-	Endpoint           string // IP or hostname of SLS endpoint
-	AccessKeyID        string // Deprecated: use CredentialsProvider instead
-	AccessKeySecret    string // Deprecated: use CredentialsProvider instead
-	SecurityToken      string // Deprecated: use CredentialsProvider instead
-	UsingHTTP          bool   // default https
-	UserAgent          string // default defaultLogUserAgent
-	AuthVersion        AuthVersionType
+	Endpoint           string          // Deprecated: will be made private in the next version
+	AccessKeyID        string          // Deprecated: will be made private in the next version
+	AccessKeySecret    string          // Deprecated: will be made private in the next version
+	SecurityToken      string          // Deprecated: will be made private in the next version
+	UsingHTTP          bool            // Deprecated: will be made private in the next version
+	UserAgent          string          // Deprecated: will be made private in the next version
+	AuthVersion        AuthVersionType // Deprecated: will be made private in the next version
 	baseURL            string
 	retryTimeout       time.Duration
 	httpClient         *http.Client
@@ -62,8 +63,8 @@ type LogProject struct {
 	//
 	// When conflict with sdk pre-defined headers, the value will
 	// be ignored
-	CommonHeaders map[string]string
-	InnerHeaders  map[string]string
+	commonHeaders map[string]string
+	innerHeaders  map[string]string
 }
 
 // NewLogProject creates a new SLS project.
@@ -95,19 +96,19 @@ func NewLogProjectV2(name, endpoint string, provider CredentialsProvider) (p *Lo
 	return p, nil
 }
 
-// With credentials provider
+// Deprecated: With credentials provider
 func (p *LogProject) WithCredentialsProvider(provider CredentialsProvider) *LogProject {
 	p.credentialProvider = provider
 	return p
 }
 
-// WithToken add token parameter
+// Deprecated: WithToken add token parameter
 func (p *LogProject) WithToken(token string) (*LogProject, error) {
 	p.SecurityToken = token
 	return p, nil
 }
 
-// WithRequestTimeout with custom timeout for a request
+// Deprecated: WithRequestTimeout with custom timeout for a request
 func (p *LogProject) WithRequestTimeout(timeout time.Duration) *LogProject {
 	if p.httpClient == defaultHttpClient || p.httpClient == nil {
 		p.httpClient = newDefaultHTTPClient(timeout)
@@ -117,7 +118,7 @@ func (p *LogProject) WithRequestTimeout(timeout time.Duration) *LogProject {
 	return p
 }
 
-// WithRetryTimeout with custom timeout for a operation
+// Deprecated: WithRetryTimeout with custom timeout for a operation
 // each operation may send one or more HTTP requests in case of retry required.
 func (p *LogProject) WithRetryTimeout(timeout time.Duration) *LogProject {
 	p.retryTimeout = timeout
@@ -538,6 +539,135 @@ func (p *LogProject) DeleteMachineGroup(name string) (err error) {
 		return err
 	}
 
+	return nil
+}
+
+func (p *LogProject) CreateMetricConfig(metricStore string, metricConfig *MetricsConfig) error {
+	body, err := json.Marshal(metricConfig)
+	if err != nil {
+		return NewClientError(err)
+	}
+	jsonBody := map[string]interface{}{
+		"metricStore":         metricStore,
+		"metricsConfigDetail": string(body),
+	}
+	body, err = json.Marshal(jsonBody)
+	if err != nil {
+		return NewClientError(err)
+	}
+
+	h := map[string]string{
+		"x-log-bodyrawsize": fmt.Sprintf("%v", len(body)),
+		"Content-Type":      "application/json",
+		"Accept-Encoding":   "deflate", // TODO: support lz4
+	}
+	r, err := request(p, "POST", "/metricsconfigs", h, body)
+	if err != nil {
+		return NewClientError(err)
+	}
+	defer r.Body.Close()
+	body, err = ioutil.ReadAll(r.Body)
+	if r.StatusCode != http.StatusOK {
+		err := new(Error)
+		json.Unmarshal(body, err)
+		return err
+	}
+	return nil
+}
+
+func (p *LogProject) DeleteMetricConfig(metricStore string) (err error) {
+	h := map[string]string{
+		"x-log-bodyrawsize": "0",
+	}
+	r, err := request(p, "DELETE", "/metricsconfigs/"+metricStore, h, nil)
+	if err != nil {
+		return NewClientError(err)
+	}
+	defer r.Body.Close()
+	body, _ := ioutil.ReadAll(r.Body)
+	if r.StatusCode != http.StatusOK {
+		err := new(Error)
+		json.Unmarshal(body, err)
+		return err
+	}
+	return nil
+}
+
+func (p *LogProject) GetMetricConfig(metricStore string) (*MetricsConfig, error) {
+	h := map[string]string{
+		"x-log-bodyrawsize": "0",
+	}
+	r, err := request(p, "GET", "/metricsconfigs/"+metricStore, h, nil)
+	if err != nil {
+		return nil, NewClientError(err)
+	}
+	defer r.Body.Close()
+	buf, _ := ioutil.ReadAll(r.Body)
+	if r.StatusCode != http.StatusOK {
+		err := new(Error)
+		json.Unmarshal(buf, err)
+		return nil, err
+	}
+	type OuterJSON struct {
+		MetricStore         string `json:"metricStore"`
+		MetricsConfigDetail string `json:"metricsConfigDetail"`
+	}
+
+	var outerData OuterJSON
+	if err := json.Unmarshal(buf, &outerData); err != nil {
+		log.Fatalf("Error parsing outer JSON: %v", err)
+	}
+
+	m := &MetricsConfig{}
+	err = json.Unmarshal([]byte(outerData.MetricsConfigDetail), m)
+	if err != nil {
+		return nil, err
+	}
+	if IsDebugLevelMatched(4) {
+		level.Info(Logger).Log("msg", "Get MetricConfig config, result", *m)
+	}
+
+	if reflect.DeepEqual(m, MetricsConfig{}) {
+		fmt.Println("MetricsConfig is empty")
+	}
+
+	return m, err
+}
+
+func (p *LogProject) UpdateMetricConfig(metricStore string, metricConfig *MetricsConfig) (err error) {
+	body, err := json.Marshal(metricConfig)
+	if err != nil {
+		return NewClientError(err)
+	}
+	jsonBody := map[string]interface{}{
+		"metricStore":         metricStore,
+		"metricsConfigDetail": string(body),
+	}
+	body, err = json.Marshal(jsonBody)
+	if err != nil {
+		return NewClientError(err)
+	}
+	body, err = json.Marshal(jsonBody)
+	if err != nil {
+		return NewClientError(err)
+	}
+
+	h := map[string]string{
+		"x-log-bodyrawsize": fmt.Sprintf("%v", len(body)),
+		"Content-Type":      "application/json",
+		"Accept-Encoding":   "deflate", // TODO: support lz4
+	}
+	r, err := request(p, "PUT", "/metricsconfigs/"+metricStore, h, body)
+	if err != nil {
+		return NewClientError(err)
+	}
+	defer r.Body.Close()
+	body, _ = ioutil.ReadAll(r.Body)
+	if r.StatusCode != http.StatusOK {
+		err := new(Error)
+		json.Unmarshal(body, err)
+		return err
+	}
 	return nil
 }
 
@@ -1113,22 +1243,29 @@ func (p *LogProject) DeleteLogging() (err error) {
 	return nil
 }
 
+// warning: call some method directly from Client lead to requestTimeout not working,
+// we should fix it in the future by making breaking changes
 func (p *LogProject) init() {
-	if p.retryTimeout == time.Duration(0) {
-		if p.httpClient == nil {
-			p.httpClient = defaultHttpClient
-		}
+	p.parseEndpointIfNeeded()
+	if p.retryTimeout == 0 {
 		p.retryTimeout = defaultRetryTimeout
-		p.parseEndpoint()
+	}
+
+	if p.httpClient == nil {
+		p.httpClient = defaultHttpClient
 	}
 }
 
 func (p *LogProject) getBaseURL() string {
+	p.parseEndpointIfNeeded()
+	return p.baseURL
+}
+
+func (p *LogProject) parseEndpointIfNeeded() {
 	if len(p.baseURL) > 0 {
-		return p.baseURL
+		return
 	}
 	p.parseEndpoint()
-	return p.baseURL
 }
 
 func (p *LogProject) parseEndpoint() {
@@ -1146,23 +1283,9 @@ func (p *LogProject) parseEndpoint() {
 	if GlobalForceUsingHTTP || p.UsingHTTP {
 		scheme = httpScheme
 	}
-	if ipRegex.MatchString(host) { // ip format
-		// use direct ip proxy
-		url, _ := url.Parse(fmt.Sprintf("%s%s", scheme, host))
-		if p.httpClient == nil || p.httpClient == defaultHttpClient {
-			p.httpClient = newDefaultHTTPClient(defaultRequestTimeout)
-		}
-		setHTTPProxy(p.httpClient, url)
-	}
 	if len(p.Name) == 0 {
 		p.baseURL = fmt.Sprintf("%s%s", scheme, host)
 	} else {
 		p.baseURL = fmt.Sprintf("%s%s.%s", scheme, p.Name, host)
 	}
-}
-
-func setHTTPProxy(client *http.Client, proxy *url.URL) {
-	t := newDefaultTransport()
-	t.Proxy = http.ProxyURL(proxy)
-	client.Transport = t
 }

@@ -76,7 +76,10 @@ func getETLJob(etlJobName string, etlScript string) sls.ETL {
 		AccessKeySecret: accessKeySecret,
 		Endpoint:        endpoint,
 		Project:         projectName,
-		Logstore:        "target_logstore_name",
+		DataSets: []string{
+			"__UNNAMED__",
+		},
+		Logstore: "target_logstore_name",
 	}
 
 	config := sls.ETLConfiguration{
@@ -86,6 +89,7 @@ func getETLJob(etlJobName string, etlScript string) sls.ETL {
 		Logstore:        logStoreName,
 		FromTime:        time.Now().Unix(),
 		Script:          etlScript,
+		Lang:            "SPL",
 		Parameters:      map[string]string{},
 		ETLSinks:        []sls.ETLSink{sink},
 	}

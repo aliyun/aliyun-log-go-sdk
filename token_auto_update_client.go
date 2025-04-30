@@ -261,6 +261,16 @@ func (c *TokenAutoUpdateClient) ListLogStore(project string) (logstoreList []str
 	return
 }
 
+func (c *TokenAutoUpdateClient) ListLogStoreV2(project string, offset, size int, telemetryType string) (logstoreList []string, err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		logstoreList, err = c.logClient.ListLogStoreV2(project, offset, size, telemetryType)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
 func (c *TokenAutoUpdateClient) GetLogStore(project string, logstore string) (logstoreRst *LogStore, err error) {
 	for i := 0; i < c.maxTryTimes; i++ {
 		logstoreRst, err = c.logClient.GetLogStore(project, logstore)
@@ -424,6 +434,46 @@ func (c *TokenAutoUpdateClient) UpdateMachineGroup(project string, m *MachineGro
 func (c *TokenAutoUpdateClient) DeleteMachineGroup(project string, machineGroup string) (err error) {
 	for i := 0; i < c.maxTryTimes; i++ {
 		err = c.logClient.DeleteMachineGroup(project, machineGroup)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
+func (c *TokenAutoUpdateClient) CreateMetricConfig(project string, metricStore string, metricConfig *MetricsConfig) (err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		err = c.logClient.CreateMetricConfig(project, metricStore, metricConfig)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
+func (c *TokenAutoUpdateClient) DeleteMetricConfig(project string, metricStore string) (err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		err = c.logClient.DeleteMetricConfig(project, metricStore)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
+func (c *TokenAutoUpdateClient) GetMetricConfig(project string, metricStore string) (metricConfig *MetricsConfig, err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		metricConfig, err = c.logClient.GetMetricConfig(project, metricStore)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
+func (c *TokenAutoUpdateClient) UpdateMetricConfig(project string, metricStore string, metricConfig *MetricsConfig) (err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		err = c.logClient.UpdateMetricConfig(project, metricStore, metricConfig)
 		if !c.processError(err) {
 			return
 		}
@@ -881,9 +931,29 @@ func (c *TokenAutoUpdateClient) GetHistograms(project, logstore string, topic st
 	return
 }
 
+func (c *TokenAutoUpdateClient) GetHistogramsV2(project, logstore string, ghr *GetHistogramRequest) (h *GetHistogramsResponse, err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		h, err = c.logClient.GetHistogramsV2(project, logstore, ghr)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
 func (c *TokenAutoUpdateClient) GetHistogramsToCompleted(project, logstore string, topic string, from int64, to int64, queryExp string) (h *GetHistogramsResponse, err error) {
 	for i := 0; i < c.maxTryTimes; i++ {
 		h, err = c.logClient.GetHistogramsToCompleted(project, logstore, topic, from, to, queryExp)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
+func (c *TokenAutoUpdateClient) GetHistogramsToCompletedV2(project, logstore string, ghr *GetHistogramRequest) (h *GetHistogramsResponse, err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		h, err = c.logClient.GetHistogramsToCompletedV2(project, logstore, ghr)
 		if !c.processError(err) {
 			return
 		}
