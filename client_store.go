@@ -321,6 +321,21 @@ func (c *Client) GetLogsToCompletedV3(project, logstore string, req *GetLogReque
 	return ls.GetLogsToCompletedV3(req)
 }
 
+func (c *Client) DeleteLogs(project, logstore string, req *DeleteLogsRequest) (*DeleteLogsResponse, error) {
+	ls := convertLogstore(c, project, logstore)
+	return ls.DeleteLogs(req)
+}
+
+func (c *Client) GetDeleteLogs(project, logstore string, req *GetDeleteLogsRequest) (*DeleteLogsProgress, error) {
+	ls := convertLogstore(c, project, logstore)
+	return ls.GetDeleteLogs(req)
+}
+
+func (c *Client) ListDeleteLogs(project, logstore string, req *ListDeleteLogsRequest) (*ListDeleteLogsResponse, error) {
+	ls := convertLogstore(c, project, logstore)
+	return ls.ListDeleteLogs(req)
+}
+
 // GetLogLinesV2 ...
 func (c *Client) GetLogLinesV2(project, logstore string, req *GetLogRequest) (*GetLogLinesResponse, error) {
 	ls := convertLogstore(c, project, logstore)

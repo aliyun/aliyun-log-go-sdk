@@ -716,6 +716,91 @@ func (s *LogStore) GetHistogramsV2(ghr *GetHistogramRequest) (*GetHistogramsResp
 	return &getHistogramsResponse, nil
 }
 
+func (s *LogStore) DeleteLogs(glr *DeleteLogsRequest) (*DeleteLogsResponse, error) {
+	reqBody, err := json.Marshal(glr)
+	if err != nil {
+		return nil, err
+	}
+	h := map[string]string{
+		"x-log-bodyrawsize": fmt.Sprintf("%v", len(reqBody)),
+		"Content-Type":      "application/json",
+	}
+	uri := fmt.Sprintf("/logstores/%s/logs", s.Name)
+	r, err := request(s.project, "DELETE", uri, h, nil)
+	if err != nil {
+		return nil, NewClientError(err)
+	}
+	defer r.Body.Close()
+
+	respBody, _ := ioutil.ReadAll(r.Body)
+	if r.StatusCode != http.StatusOK {
+		err := new(Error)
+		if jErr := json.Unmarshal(respBody, err); jErr != nil {
+			return nil, NewBadResponseError(string(respBody), r.Header, r.StatusCode)
+		}
+		return nil, err
+	}
+
+	resp := &DeleteLogsResponse{}
+	if err := json.Unmarshal(respBody, resp); err != nil {
+		return nil, NewBadResponseError(string(respBody), r.Header, r.StatusCode)
+	}
+
+	return resp, nil
+}
+
+func (s *LogStore) GetDeleteLogs(gdr *GetDeleteLogsRequest) (*DeleteLogsProgress, error) {
+	h := map[string]string{
+		"x-log-bodyrawsize": "0",
+		"Accept":            "application/json",
+	}
+
+	uri := fmt.Sprintf("/logstores/%s/deletelogs/%s", s.Name, gdr.TaskId)
+	r, err := request(s.project, "GET", uri, h, nil)
+	if err != nil {
+		return nil, NewClientError(err)
+	}
+	defer r.Body.Close()
+	body, _ := ioutil.ReadAll(r.Body)
+	if r.StatusCode != http.StatusOK {
+		err := new(Error)
+		if jErr := json.Unmarshal(body, err); jErr != nil {
+			return nil, NewBadResponseError(string(body), r.Header, r.StatusCode)
+		}
+		return nil, err
+	}
+
+	progress := &DeleteLogsProgress{}
+	err = json.Unmarshal(body, &progress)
+	if err != nil {
+		return nil, NewBadResponseError(string(body), r.Header, r.StatusCode)
+	}
+
+	return progress, nil
+}
+
+func (s *LogStore) ListDeleteLogs(req *ListDeleteLogsRequest) (*ListDeleteLogsResponse, error) {
+	h := map[string]string{
+		"Content-Type":      "application/json",
+		"x-log-bodyrawsize": "0",
+	}
+	uri := fmt.Sprintf("/logstores/%s/deletelogs?offset=%d&line=%d", s.Name, req.Offset, req.Size)
+	r, err := request(s.project, "GET", uri, h, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Body.Close()
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, err
+	}
+	res := &ListDeleteLogsResponse{}
+	if err = json.Unmarshal(buf, res); err != nil {
+		return nil, NewClientError(err)
+	}
+	return res, nil
+}
+
 // GetLogLines query logs with [from, to) time range
 func (s *LogStore) GetLogLines(topic string, from int64, to int64, queryExp string,
 	maxLineNum int64, offset int64, reverse bool) (*GetLogLinesResponse, error) {
