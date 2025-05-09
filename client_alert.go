@@ -2,9 +2,6 @@ package sls
 
 import (
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"net/url"
 	"strconv"
 )
 
@@ -168,7 +165,7 @@ type Alert struct {
 }
 
 func (alert *Alert) IsEnabled() bool {
-	return alert.Status == "ENABLED"
+	return alert.Status != "DISABLED"
 }
 
 func (alert *Alert) MarshalJSON() ([]byte, error) {
@@ -261,352 +258,148 @@ type AlertConfiguration struct {
 }
 
 func (c *Client) CreateSavedSearch(project string, savedSearch *SavedSearch) error {
-	body, err := json.Marshal(savedSearch)
-	if err != nil {
-		return NewClientError(err)
-	}
-
-	h := map[string]string{
-		"x-log-bodyrawsize": fmt.Sprintf("%v", len(body)),
-		"Content-Type":      "application/json",
-	}
-
-	uri := "/savedsearches"
-	r, err := c.request(project, "POST", uri, h, body)
-	if err != nil {
-		return err
-	}
-	r.Body.Close()
-	return nil
+	return c.doRequest(project, "POST", "/savedsearches", nil, nil, savedSearch, nil)
 }
 
 func (c *Client) UpdateSavedSearch(project string, savedSearch *SavedSearch) error {
-	body, err := json.Marshal(savedSearch)
-	if err != nil {
-		return NewClientError(err)
-	}
-
-	h := map[string]string{
-		"x-log-bodyrawsize": fmt.Sprintf("%v", len(body)),
-		"Content-Type":      "application/json",
-	}
-
-	uri := "/savedsearches/" + savedSearch.SavedSearchName
-	r, err := c.request(project, "PUT", uri, h, body)
-	if err != nil {
-		return err
-	}
-	r.Body.Close()
-	return nil
+	path := "/savedsearches/" + savedSearch.SavedSearchName
+	return c.doRequest(project, "PUT", path, nil, nil, savedSearch, nil)
 }
 
 func (c *Client) DeleteSavedSearch(project string, savedSearchName string) error {
-	h := map[string]string{
-		"x-log-bodyrawsize": "0",
-		"Content-Type":      "application/json",
-	}
-
-	uri := "/savedsearches/" + savedSearchName
-	r, err := c.request(project, "DELETE", uri, h, nil)
-	if err != nil {
-		return err
-	}
-	r.Body.Close()
-	return nil
+	path := "/savedsearches/" + savedSearchName
+	return c.doRequest(project, "DELETE", path, nil, nil, nil, nil)
 }
 
 func (c *Client) GetSavedSearch(project string, savedSearchName string) (*SavedSearch, error) {
-	h := map[string]string{
-		"x-log-bodyrawsize": "0",
-		"Content-Type":      "application/json",
-	}
-
-	uri := "/savedsearches/" + savedSearchName
-	r, err := c.request(project, "GET", uri, h, nil)
-	if err != nil {
+	path := "/savedsearches/" + savedSearchName
+	var savedSearch SavedSearch
+	if err := c.doRequest(project, "GET", path, nil, nil, nil, &savedSearch); err != nil {
 		return nil, err
 	}
-	defer r.Body.Close()
-	buf, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return nil, readResponseError(err)
-	}
-	savedSearch := &SavedSearch{}
-	if err = json.Unmarshal(buf, savedSearch); err != nil {
-		err = NewClientError(err)
-	}
-	return savedSearch, err
+	return &savedSearch, nil
 }
 
 func (c *Client) ListSavedSearch(project string, savedSearchName string, offset, size int) (savedSearches []string, total int, count int, err error) {
-	h := map[string]string{
-		"x-log-bodyrawsize": "0",
-		"Content-Type":      "application/json",
-		"savedsearchName":   savedSearchName,
-		"offset":            strconv.Itoa(offset),
-		"size":              strconv.Itoa(size),
+	queryParams := map[string]string{
+		"offset":          strconv.Itoa(offset),
+		"size":            strconv.Itoa(size),
+		"savedsearchName": savedSearchName,
 	}
-
-	uri := "/savedsearches"
-	r, err := c.request(project, "GET", uri, h, nil)
-	if err != nil {
-		return nil, 0, 0, err
-	}
-	defer r.Body.Close()
-
 	type ListSavedSearch struct {
 		Total         int      `json:"total"`
 		Count         int      `json:"count"`
 		Savedsearches []string `json:"savedsearches"`
 	}
-
-	buf, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return nil, 0, 0, readResponseError(err)
+	var listSavedSearch ListSavedSearch
+	if err = c.doRequest(project, "GET", "/savedsearches", queryParams, nil, nil, &listSavedSearch); err != nil {
+		return nil, 0, 0, err
 	}
-	listSavedSearch := &ListSavedSearch{}
-	if err = json.Unmarshal(buf, listSavedSearch); err != nil {
-		err = NewClientError(err)
-	}
-	return listSavedSearch.Savedsearches, listSavedSearch.Total, listSavedSearch.Count, err
+	return listSavedSearch.Savedsearches, listSavedSearch.Total, listSavedSearch.Count, nil
 }
 
 func (c *Client) ListSavedSearchV2(project string, savedSearchName string, offset, size int) (savedSearches []string, savedsearchItems []ResponseSavedSearchItem, total int, count int, err error) {
-	h := map[string]string{
-		"x-log-bodyrawsize": "0",
-		"Content-Type":      "application/json",
-		"savedsearchName":   savedSearchName,
-		"offset":            strconv.Itoa(offset),
-		"size":              strconv.Itoa(size),
+	queryParams := map[string]string{
+		"offset":          strconv.Itoa(offset),
+		"size":            strconv.Itoa(size),
+		"savedsearchName": savedSearchName,
 	}
-
-	uri := "/savedsearches"
-	r, err := c.request(project, "GET", uri, h, nil)
-	if err != nil {
-		return nil, nil, 0, 0, err
-	}
-	defer r.Body.Close()
-
 	type ListSavedSearch struct {
 		Total            int                       `json:"total"`
 		Count            int                       `json:"count"`
 		Savedsearches    []string                  `json:"savedsearches"`
 		SavedsearchItems []ResponseSavedSearchItem `json:"savedsearchItems"`
 	}
-
-	buf, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return nil, nil, 0, 0, readResponseError(err)
+	var listSavedSearch ListSavedSearch
+	if err = c.doRequest(project, "GET", "/savedsearches", queryParams, nil, nil, &listSavedSearch); err != nil {
+		return nil, nil, 0, 0, err
 	}
-	listSavedSearch := &ListSavedSearch{}
-	if err = json.Unmarshal(buf, listSavedSearch); err != nil {
-		err = NewClientError(err)
-	}
-	return listSavedSearch.Savedsearches, listSavedSearch.SavedsearchItems, listSavedSearch.Total, listSavedSearch.Count, err
+	return listSavedSearch.Savedsearches, listSavedSearch.SavedsearchItems, listSavedSearch.Total, listSavedSearch.Count, nil
 }
 
 func (c *Client) CreateAlert(project string, alert *Alert) error {
-	body, err := json.Marshal(alert)
-	if err != nil {
-		return NewClientError(err)
-	}
-	h := map[string]string{
-		"x-log-bodyrawsize": fmt.Sprintf("%v", len(body)),
-		"Content-Type":      "application/json",
-	}
-
-	uri := "/jobs"
-	r, err := c.request(project, "POST", uri, h, body)
-	if err != nil {
-		return err
-	}
-	r.Body.Close()
-	return nil
+	return c.doRequest(project, "POST", "/jobs", nil, nil, alert, nil)
 }
 
 func (c *Client) CreateAlertString(project string, alert string) error {
-	body := []byte(alert)
-	h := map[string]string{
-		"x-log-bodyrawsize": fmt.Sprintf("%v", len(body)),
-		"Content-Type":      "application/json",
-	}
-
-	uri := "/jobs"
-	r, err := c.request(project, "POST", uri, h, body)
-	if err != nil {
-		return err
-	}
-	r.Body.Close()
-	return nil
+	return c.doRequest(project, "POST", "/jobs", nil, map[string]string{
+		HTTPHeaderContentType: "application/json",
+	}, []byte(alert), nil)
 }
 
 func (c *Client) UpdateAlert(project string, alert *Alert) error {
-	body, err := json.Marshal(alert)
-	if err != nil {
-		return NewClientError(err)
-	}
-
-	h := map[string]string{
-		"x-log-bodyrawsize": fmt.Sprintf("%v", len(body)),
-		"Content-Type":      "application/json",
-	}
-
-	uri := "/jobs/" + alert.Name
-	r, err := c.request(project, "PUT", uri, h, body)
-	if err != nil {
-		return err
-	}
-	r.Body.Close()
-	return nil
+	path := "/jobs/" + alert.Name
+	return c.doRequest(project, "PUT", path, nil, nil, alert, nil)
 }
 
 func (c *Client) UpdateAlertString(project string, alertName, alert string) error {
-	body := []byte(alert)
-
-	h := map[string]string{
-		"x-log-bodyrawsize": fmt.Sprintf("%v", len(body)),
-		"Content-Type":      "application/json",
-	}
-
-	uri := "/jobs/" + alertName
-	r, err := c.request(project, "PUT", uri, h, body)
-	if err != nil {
-		return err
-	}
-	r.Body.Close()
-	return nil
+	path := "/jobs/" + alertName
+	return c.doRequest(project, "PUT", path, nil, map[string]string{
+		HTTPHeaderContentType: "application/json",
+	}, []byte(alert), nil)
 }
 
 func (c *Client) DeleteAlert(project string, alertName string) error {
-	h := map[string]string{
-		"x-log-bodyrawsize": "0",
-		"Content-Type":      "application/json",
-	}
-
-	uri := "/jobs/" + alertName
-	r, err := c.request(project, "DELETE", uri, h, nil)
-	if err != nil {
-		return err
-	}
-	r.Body.Close()
-	return nil
+	path := "/jobs/" + alertName
+	return c.doRequest(project, "DELETE", path, nil, nil, nil, nil)
 }
 
 func (c *Client) DisableAlert(project string, alertName string) error {
-	h := map[string]string{
-		"x-log-bodyrawsize": "0",
-		"Content-Type":      "application/json",
-	}
-	uri := fmt.Sprintf("/jobs/%s?action=disable", alertName)
-	r, err := c.request(project, "PUT", uri, h, nil)
-	if err != nil {
-		return err
-	}
-	r.Body.Close()
-	return nil
+	path := "/jobs/" + alertName
+	return c.doRequest(project, "PUT", path, map[string]string{
+		"action": "disable",
+	}, nil, nil, nil)
 }
 
 func (c *Client) EnableAlert(project string, alertName string) error {
-	h := map[string]string{
-		"x-log-bodyrawsize": "0",
-		"Content-Type":      "application/json",
-	}
-	uri := fmt.Sprintf("/jobs/%s?action=enable", alertName)
-	r, err := c.request(project, "PUT", uri, h, nil)
-	if err != nil {
-		return err
-	}
-	r.Body.Close()
-	return nil
+	path := "/jobs/" + alertName
+	return c.doRequest(project, "PUT", path, map[string]string{
+		"action": "enable",
+	}, nil, nil, nil)
 }
 
 func (c *Client) GetAlert(project string, alertName string) (*Alert, error) {
-	h := map[string]string{
-		"x-log-bodyrawsize": "0",
-		"Content-Type":      "application/json",
-	}
-	uri := "/jobs/" + alertName
-	r, err := c.request(project, "GET", uri, h, nil)
-	if err != nil {
+	path := "/jobs/" + alertName
+	var alert Alert
+	if err := c.doRequest(project, "GET", path, nil, nil, nil, &alert); err != nil {
 		return nil, err
 	}
-	defer r.Body.Close()
-	buf, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return nil, readResponseError(err)
-	}
-	alert := &Alert{}
-	if err = json.Unmarshal(buf, alert); err != nil {
-		err = NewClientError(err)
-	}
-	return alert, err
+	return &alert, nil
 }
 
 func (c *Client) GetAlertString(project string, alertName string) (string, error) {
-	h := map[string]string{
-		"x-log-bodyrawsize": "0",
-		"Content-Type":      "application/json",
-	}
-	uri := "/jobs/" + alertName
-	r, err := c.request(project, "GET", uri, h, nil)
+	path := "/jobs/" + alertName
+	body, err := c.doRequestRaw(project, "GET", path, nil, nil, nil)
 	if err != nil {
 		return "", err
 	}
-	defer r.Body.Close()
-	buf, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return "", readResponseError(err)
-	}
-	return string(buf), err
+	return string(body), nil
 }
 
 func (c *Client) ListAlert(project, alertName, dashboard string, offset, size int) (alerts []*Alert, total int, count int, err error) {
-	h := map[string]string{
-		"x-log-bodyrawsize": "0",
-		"Content-Type":      "application/json",
+	queryParams := map[string]string{
+		"offset":  strconv.Itoa(offset),
+		"size":    strconv.Itoa(size),
+		"jobName": alertName,
+		"jobType": "Alert",
 	}
-	v := url.Values{}
-	v.Add("jobName", alertName)
-	v.Add("jobType", "Alert")
-	v.Add("offset", fmt.Sprintf("%d", offset))
-	v.Add("size", fmt.Sprintf("%d", size))
 	if dashboard != "" {
-		v.Add("resourceProvider", dashboard)
+		queryParams["resourceProvider"] = dashboard
 	}
-	uri := "/jobs?" + v.Encode()
-	r, err := c.request(project, "GET", uri, h, nil)
-	if err != nil {
-		return nil, 0, 0, err
-	}
-	defer r.Body.Close()
-
 	type AlertList struct {
 		Total   int      `json:"total"`
 		Count   int      `json:"count"`
 		Results []*Alert `json:"results"`
 	}
-	buf, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return nil, 0, 0, readResponseError(err)
+	var listAlert AlertList
+	if err = c.doRequest(project, "GET", "/jobs", queryParams, nil, nil, &listAlert); err != nil {
+		return nil, 0, 0, err
 	}
-	listAlert := &AlertList{}
-	if err = json.Unmarshal(buf, listAlert); err != nil {
-		err = NewClientError(err)
-	}
-	return listAlert.Results, listAlert.Total, listAlert.Count, err
+	return listAlert.Results, listAlert.Total, listAlert.Count, nil
 }
 
 func (c *Client) PublishAlertEvent(project string, alertResult []byte) error {
-	h := map[string]string{
-		"x-log-bodyrawsize": fmt.Sprintf("%v", len(alertResult)),
-		"Content-Type":      "application/json",
-	}
-
-	uri := "/event/alerthub?type=raw"
-	r, err := c.request(project, "POST", uri, h, alertResult)
-	if err != nil {
-		return err
-	}
-	r.Body.Close()
-	return nil
+	return c.doRequest(project, "POST", "/event/alerthub", map[string]string{
+		"type": "raw",
+	}, nil, alertResult, nil)
 }
