@@ -3,24 +3,83 @@ package sls
 // request sends a request to SLS.
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"strings"
 
 	"github.com/go-kit/kit/log/level"
 )
 
+// response must be nil or a pointer to a struct which is json unmarshalable
+// @param reqBody if nil, it will be ignored, if is a []byte, use it, otherwise, it will be json marshaled
+func (c *Client) doRequest(project, method, path string, queryParams, headers map[string]string, reqBody any, response any) error {
+	buf, respHeader, statusCode, err := c.doRequestInner(project, method, path, queryParams, headers, reqBody)
+	if err != nil {
+		return err
+	}
+	if response == nil {
+		return nil
+	}
+	if err := json.Unmarshal(buf, response); err != nil {
+		return invalidJsonRespError(string(buf), respHeader, statusCode)
+	}
+	return nil
+}
+
+// get raw bytes of http response body
+func (c *Client) doRequestRaw(project, method, path string, queryParams, headers map[string]string, reqBody any) (respBody []byte, err error) {
+	buf, _, _, err := c.doRequestInner(project, method, path, queryParams, headers, reqBody)
+	if err != nil {
+		return nil, err
+	}
+	return buf, nil
+}
+
+// do not use this directly outside this file
+func (c *Client) doRequestInner(project, method, path string, queryParams, headers map[string]string, reqBody any) (respBody []byte, respHeader http.Header, statusCode int, err error) {
+	// body
+	body, isJson, err := getRequestBody(reqBody)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+	// headers
+	if headers == nil {
+		headers = make(map[string]string)
+	}
+	if isJson {
+		headers[HTTPHeaderContentType] = "application/json"
+	}
+	if _, ok := headers[HTTPHeaderBodyRawSize]; !ok {
+		headers[HTTPHeaderBodyRawSize] = strconv.Itoa(len(body))
+	}
+
+	r, err := c.request(project, method, getRequestUrl(path, queryParams), headers, body)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+
+	// response
+	defer r.Body.Close()
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, nil, 0, readResponseError(err)
+	}
+	if r.StatusCode != http.StatusOK {
+		// should not reach here, but we keep checking it
+		return nil, nil, 0, httpStatusNotOkError(buf, r.Header, r.StatusCode)
+	}
+	return buf, r.Header, r.StatusCode, nil
+}
+
 // request sends a request to alibaba cloud Log Service.
 // @note if error is nil, you must call http.Response.Body.Close() to finalize reader
 func (c *Client) request(project, method, uri string, headers map[string]string, body []byte) (*http.Response, error) {
-	// The caller should provide 'x-log-bodyrawsize' header
-	if _, ok := headers[HTTPHeaderBodyRawSize]; !ok {
-		return nil, fmt.Errorf("Can't find 'x-log-bodyrawsize' header")
-	}
-
 	var endpoint string
 	var usingHTTPS bool
 	if strings.HasPrefix(c.Endpoint, "https://") {
@@ -147,4 +206,26 @@ func (c *Client) request(project, method, uri string, headers map[string]string,
 	}
 
 	return resp, nil
+}
+
+func getRequestBody(reqBody any) (body []byte, isJson bool, err error) {
+	if reqBody == nil {
+		return nil, false, nil
+	}
+	if b, ok := reqBody.([]byte); ok {
+		return b, false, nil
+	}
+	body, err = json.Marshal(reqBody)
+	return body, true, err
+}
+
+func getRequestUrl(path string, queryParams map[string]string) string {
+	if queryParams == nil {
+		return path
+	}
+	urlVal := url.Values{}
+	for k, v := range queryParams {
+		urlVal.Add(k, v)
+	}
+	return path + "?" + urlVal.Encode()
 }
