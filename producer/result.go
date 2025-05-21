@@ -1,12 +1,11 @@
 package producer
 
 type Attempt struct {
-	Success      bool
-	RequestId    string
-	ErrorCode    string
-	ErrorMessage string
-	TimeStampMs  int64
-	//最后一次访问logService的耗时 ms
+	Success           bool
+	RequestId         string
+	ErrorCode         string
+	ErrorMessage      string
+	TimeStampMs       int64
 	LastAttemptCostMs int64
 }
 

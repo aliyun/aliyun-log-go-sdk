@@ -104,7 +104,7 @@ func decrypt(s string, keyring []byte) ([]byte, error) {
 func getAKFromLocalFile(configFilePath string) (accessKeyID, accessKeySecret, securityToken string, expireTime time.Time, err error) {
 	if _, err = os.Stat(configFilePath); err == nil {
 		var akInfo AKInfo
-		//获取token config json
+		// get token config json
 		encodeTokenCfg, err := ioutil.ReadFile(configFilePath)
 		if err != nil {
 			return accessKeyID, accessKeySecret, securityToken, expireTime, err
