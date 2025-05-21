@@ -5,12 +5,13 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"github.com/pkg/errors"
 	"net/url"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 const (
@@ -247,5 +248,5 @@ func (s *SignerV4) buildSigningKey(accessKeySecret, region, date string) ([]byte
 }
 
 func (s *SignerV4) buildAuthorization(accessKeyID, signature, scope string) string {
-	return fmt.Sprintf("SLS4-HMAC-SHA256 Credential=%s/%s,Signature=%s", accessKeyID, scope, signature)
+	return fmt.Sprintf("%s Credential=%s/%s,Signature=%s", authorizationAlgorithmV4, accessKeyID, scope, signature)
 }
