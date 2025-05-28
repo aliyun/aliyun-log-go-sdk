@@ -28,11 +28,11 @@ type LogStore struct {
 	AutoSplit     bool   `json:"autoSplit"`
 	MaxSplitShard int    `json:"maxSplitShard"`
 
-	AppendMeta    bool        `json:"appendMeta"`
-	TelemetryType string      `json:"telemetryType"`
-	HotTTL        int32       `json:"hot_ttl,omitempty"`
-	Mode          string      `json:"mode,omitempty"` // "query" or "standard"(default), can't be modified after creation
-	HashConfig    *HashConfig `json:"hashConfig,omitempty"`
+	AppendMeta     bool            `json:"appendMeta"`
+	TelemetryType  string          `json:"telemetryType"`
+	HotTTL         int32           `json:"hot_ttl,omitempty"`
+	Mode           string          `json:"mode,omitempty"` // "query" or "standard"(default), can't be modified after creation
+	ShardingPolicy *ShardingPolicy `json:"shardingPolicy,omitempty"`
 
 	CreateTime     uint32 `json:"createTime,omitempty"`
 	LastModifyTime uint32 `json:"lastModifyTime,omitempty"`
@@ -44,15 +44,19 @@ type LogStore struct {
 	useMetricStoreURL  bool
 }
 
-type HashConfig struct {
-	MaxHashAttempts int         `json:"maxHashAttempts"`
-	Keys            []string    `json:"keys"`
-	ShardGroup      *ShardGroup `json:"shardGroup,omitempty"`
+type ShardingPolicy struct {
+	ShardGroup *ShardGroup `json:"shardGroup,omitempty"`
+	ShardHash  *ShardHash  `json:"shardHash,omitempty"`
 }
 
 type ShardGroup struct {
-	Count int      `json:"count"`
-	Keys  []string `json:"keys"`
+	GroupCount int      `json:"groupCount"`
+	Keys       []string `json:"keys"`
+}
+
+type ShardHash struct {
+	Keys         []string `json:"keys"`
+	MaxHashCount int      `json:"maxHashCount"`
 }
 
 // Shard defines shard struct
