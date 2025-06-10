@@ -42,20 +42,9 @@ func initIoWorker(client sls.ClientInterface, retryQueue *RetryQueue, logger log
 
 func (ioWorker *IoWorker) sendToServer(producerBatch *ProducerBatch) {
 	level.Debug(ioWorker.logger).Log("msg", "ioworker send data to server")
+
 	sendBegin := time.Now()
-	var err error
-	if producerBatch.isUseMetricStoreUrl() {
-		// not use compress type now
-		err = ioWorker.client.PutLogsWithMetricStoreURL(producerBatch.getProject(), producerBatch.getLogstore(), producerBatch.logGroup)
-	} else {
-		req := &sls.PostLogStoreLogsRequest{
-			LogGroup:     producerBatch.logGroup,
-			HashKey:      producerBatch.getShardHash(),
-			CompressType: ioWorker.producer.producerConfig.CompressType,
-			Processor:    ioWorker.producer.producerConfig.Processor,
-		}
-		err = ioWorker.client.PostLogStoreLogsV2(producerBatch.getProject(), producerBatch.getLogstore(), req)
-	}
+	err := ioWorker.doSend(producerBatch)
 	sendEnd := time.Now()
 
 	// send ok
@@ -75,7 +64,7 @@ func (ioWorker *IoWorker) sendToServer(producerBatch *ProducerBatch) {
 		"requestId", slsError.RequestID,
 		"errorCode", slsError.Code,
 		"errorMessage", slsError.Message,
-		"logs", len(producerBatch.logGroup.Logs),
+		"logs", producerBatch.logCount,
 		"canRetry", canRetry)
 	if !canRetry {
 		defer ioWorker.producer.monitor.recordFailure(sendBegin, sendEnd)
@@ -90,6 +79,24 @@ func (ioWorker *IoWorker) sendToServer(producerBatch *ProducerBatch) {
 	producerBatch.nextRetryMs = producerBatch.getRetryBackoffIntervalMs() + time.Now().UnixMilli()
 	level.Debug(ioWorker.logger).Log("msg", "Submit to the retry queue after meeting the retry criteria。")
 	ioWorker.retryQueue.sendToRetryQueue(producerBatch, ioWorker.logger)
+}
+
+func (ioWorker *IoWorker) doSend(producerBatch *ProducerBatch) error {
+	compressedData, err := producerBatch.getCompressedLogGroup(ioWorker.producer.producerConfig.CompressType)
+	if err != nil {
+		return err
+	}
+
+	req := &sls.PostCompressedLogGroupRequest{
+		Data:              compressedData,
+		UseMetricStoreURL: producerBatch.isUseMetricStoreUrl(),
+		PostLogStoreLogsRequest: sls.PostLogStoreLogsRequest{
+			HashKey:      producerBatch.getShardHash(),
+			CompressType: ioWorker.producer.producerConfig.CompressType,
+			Processor:    ioWorker.producer.producerConfig.Processor,
+		},
+	}
+	return ioWorker.client.PutCompressedLogGroup(producerBatch.getProject(), producerBatch.getLogstore(), req)
 }
 
 func parseSlsError(err error) *sls.Error {

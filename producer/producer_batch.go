@@ -24,8 +24,12 @@ type ProducerBatch struct {
 
 	// read only after seal
 	totalDataSize int64
-	logGroup      *sls.LogGroup
+	logCount      int
 	callBackList  []CallBack
+
+	// logGroup is nil if compressedLogGroup not nil
+	logGroup           *sls.LogGroup
+	compressedLogGroup *sls.CompressedLogGroup
 
 	// transient fields, but rw by at most one thread
 	attemptCount int
@@ -86,12 +90,13 @@ func (producerBatch *ProducerBatch) isUseMetricStoreUrl() bool {
 }
 
 func (producerBatch *ProducerBatch) meetSendCondition(producerConfig *ProducerConfig) bool {
-	return producerBatch.totalDataSize >= producerConfig.MaxBatchSize || len(producerBatch.logGroup.Logs) >= producerConfig.MaxBatchCount
+	return producerBatch.totalDataSize >= producerConfig.MaxBatchSize || producerBatch.logCount >= producerConfig.MaxBatchCount
 }
 
 func (producerBatch *ProducerBatch) addLog(log *sls.Log, size int64, callback CallBack) {
 	producerBatch.logGroup.Logs = append(producerBatch.logGroup.Logs, log)
 	producerBatch.totalDataSize += size
+	producerBatch.logCount++
 	if callback != nil {
 		producerBatch.callBackList = append(producerBatch.callBackList, callback)
 	}
@@ -100,6 +105,7 @@ func (producerBatch *ProducerBatch) addLog(log *sls.Log, size int64, callback Ca
 func (producerBatch *ProducerBatch) addLogList(logList []*sls.Log, size int64, callback CallBack) {
 	producerBatch.logGroup.Logs = append(producerBatch.logGroup.Logs, logList...)
 	producerBatch.totalDataSize += size
+	producerBatch.logCount += len(logList)
 	if callback != nil {
 		producerBatch.callBackList = append(producerBatch.callBackList, callback)
 	}
@@ -148,4 +154,26 @@ func (producerBatch *ProducerBatch) getRetryBackoffIntervalMs() int64 {
 		return retryWaitTime
 	}
 	return producerBatch.maxRetryIntervalInMs
+}
+
+func (producerBatch *ProducerBatch) getCompressedLogGroup(compressType int) (*sls.CompressedLogGroup, error) {
+	if producerBatch.compressedLogGroup != nil {
+		return producerBatch.compressedLogGroup, nil
+	}
+
+	// do marshal
+	body, err := proto.Marshal(producerBatch.logGroup)
+	if err != nil {
+		return nil, err
+	}
+
+	// do compress
+	compressed, err := sls.CompressLogGroup(body, compressType)
+	if err != nil {
+		return nil, err
+	}
+
+	producerBatch.compressedLogGroup = compressed
+	producerBatch.logGroup = nil // release memory here
+	return compressed, nil
 }

@@ -456,6 +456,60 @@ func (s *LogStore) PostLogStoreLogs(req *PostLogStoreLogsRequest) (err error) {
 	return nil
 }
 
+func (s *LogStore) PutCompressedLogGroup(req *PostCompressedLogGroupRequest) (err error) {
+	h := map[string]string{
+		"x-log-bodyrawsize": strconv.Itoa(req.Data.RawSize),
+		"Content-Type":      "application/x-protobuf",
+	}
+
+	switch req.Data.CompressType {
+	case Compress_LZ4:
+		h["x-log-compresstype"] = "lz4"
+	case Compress_ZSTD:
+		h["x-log-compresstype"] = "zstd"
+	default:
+	}
+
+	uri := s.getPostLogsUri(&req.PostLogStoreLogsRequest)
+	r, err := request(s.project, "POST", uri, h, req.Data.CompressedData)
+	if err != nil {
+		return NewClientError(err)
+	}
+	defer r.Body.Close()
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return readResponseError(err)
+	}
+	if r.StatusCode != http.StatusOK {
+		err := new(Error)
+		if jErr := json.Unmarshal(buf, err); jErr != nil {
+			return NewBadResponseError(string(buf), r.Header, r.StatusCode)
+		}
+		return err
+	}
+	return nil
+}
+
+func (s *LogStore) getPostLogsUri(req *PostLogStoreLogsRequest) string {
+	if s.useMetricStoreURL {
+		return fmt.Sprintf("/prometheus/%s/%s/api/v1/write", s.project.Name, s.Name)
+	}
+	uri := fmt.Sprintf("/logstores/%v", s.Name)
+
+	var params = url.Values{}
+	if req.HashKey != nil && *req.HashKey != "" {
+		params.Set("key", *req.HashKey)
+		uri = fmt.Sprintf("/logstores/%s/shards/route", s.Name)
+	}
+	if req.Processor != "" {
+		params.Set("processor", req.Processor)
+	}
+	if len(params) > 0 {
+		uri = fmt.Sprintf("%s?%s", uri, params.Encode())
+	}
+	return uri
+}
+
 // GetCursor gets log cursor of one shard specified by shardId.
 // The from can be in three form: a) unix timestamp in seccond, b) "begin", c) "end".
 // For more detail please read: https://help.aliyun.com/document_detail/29024.html

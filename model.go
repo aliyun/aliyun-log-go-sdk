@@ -352,6 +352,20 @@ type PostLogStoreLogsRequest struct {
 	Processor    string
 }
 
+// internal use only
+type PostCompressedLogGroupRequest struct {
+	Data *CompressedLogGroup
+	PostLogStoreLogsRequest
+	UseMetricStoreURL bool
+}
+
+// internal use only
+type CompressedLogGroup struct {
+	CompressType   int
+	CompressedData []byte
+	RawSize        int
+}
+
 type StoreView struct {
 	Name      string            `json:"name"`
 	StoreType string            `json:"storeType"`

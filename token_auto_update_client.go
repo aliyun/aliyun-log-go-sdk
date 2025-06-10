@@ -2140,3 +2140,14 @@ func (c *TokenAutoUpdateClient) GetStoreViewIndex(project string, storeViewName 
 	}
 	return
 }
+
+// internal use only
+func (c *TokenAutoUpdateClient) PutCompressedLogGroup(project, logstore string, req *PostCompressedLogGroupRequest) (err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		err = c.logClient.PutCompressedLogGroup(project, logstore, req)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
