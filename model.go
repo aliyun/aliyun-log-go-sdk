@@ -389,8 +389,9 @@ type StoreViewErrors struct {
 }
 
 type ListStoreViewsRequest struct {
-	Offset int `json:"offset"`
-	Size   int `json:"size"`
+	Offset    int    `json:"offset"`
+	Size      int    `json:"size"`
+	StoreType string `json:"storeType,omitempty"` // logstore or metricstore, or empty for both
 }
 
 type ListStoreViewsResponse struct {
