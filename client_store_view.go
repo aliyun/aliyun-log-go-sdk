@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/url"
+	"strconv"
 )
 
 func (c *Client) CreateStoreView(project string, storeView *StoreView) error {
@@ -84,7 +86,16 @@ func (c *Client) ListStoreViews(project string, req *ListStoreViewsRequest) (*Li
 		"Content-Type":      "application/json",
 		"x-log-bodyrawsize": "0",
 	}
-	uri := fmt.Sprintf("/storeviews?offset=%d&line=%d", req.Offset, req.Size)
+	urlVal := url.Values{}
+	urlVal.Add("offset", strconv.Itoa(req.Offset))
+	if req.Size > 0 {
+		urlVal.Add("size", strconv.Itoa(req.Size))
+	}
+	if req.StoreType != "" {
+		urlVal.Add("storeType", req.StoreType)
+	}
+	uri := fmt.Sprintf("/storeviews?%s", urlVal.Encode())
+
 	r, err := c.request(project, "GET", uri, h, nil)
 	if err != nil {
 		return nil, err
