@@ -1,6 +1,7 @@
 package sls
 
 import (
+	io "io"
 	"os"
 
 	"github.com/go-kit/kit/log"
@@ -19,40 +20,38 @@ func initDefaultSLSLogger() log.Logger {
 	return GenerateInnerLogger(logFileName, isJsonType, logMaxSize, logFileBackupCount, allowLogLevel)
 }
 
-func GenerateInnerLogger(logFileName, isJsonType, logMaxSize, logFileBackupCount, allowLogLevel string) log.Logger {
-	var logger log.Logger
-
-	if logFileName == "" {
-		logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout))
-		return logger
-	} else if logFileName == "stdout" {
-		if isJsonType == "true" {
-			logger = log.NewLogfmtLogger(initLogFlusher(logFileBackupCount, logMaxSize, logFileName))
-		} else {
-			logger = log.NewJSONLogger(initLogFlusher(logFileBackupCount, logMaxSize, logFileName))
-		}
-	} else if logFileName != "stdout" {
-		if isJsonType == "true" {
-			logger = log.NewJSONLogger(log.NewSyncWriter(os.Stdout))
-		} else {
-			logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout))
-		}
-	}
+func getLogLevelFilter(allowLogLevel string) level.Option {
 	switch allowLogLevel {
 	case "debug":
-		logger = level.NewFilter(logger, level.AllowDebug())
+		return level.AllowDebug()
 	case "info":
-		logger = level.NewFilter(logger, level.AllowInfo())
+		return level.AllowInfo()
 	case "warn":
-		logger = level.NewFilter(logger, level.AllowWarn())
+		return level.AllowWarn()
 	case "error":
-		logger = level.NewFilter(logger, level.AllowError())
+		return level.AllowError()
 	default:
-		logger = level.NewFilter(logger, level.AllowInfo())
+		return level.AllowInfo()
+	}
+}
+
+func GenerateInnerLogger(logFileName, isJsonType, logMaxSize, logFileBackupCount, allowLogLevel string) log.Logger {
+	var writer io.Writer
+	if logFileName == "stdout" || logFileName == "" { // for backward compatibility
+		writer = log.NewSyncWriter(os.Stdout)
+	} else {
+		writer = initLogFlusher(logFileBackupCount, logMaxSize, logFileName)
 	}
 
-	logger = log.With(logger, "time", log.DefaultTimestampUTC, "caller", log.DefaultCaller)
-	return logger
+	var logger log.Logger
+	if isJsonType == "true" {
+		logger = log.NewJSONLogger(writer)
+	} else {
+		logger = log.NewLogfmtLogger(writer)
+	}
+
+	logger = level.NewFilter(logger, getLogLevelFilter(allowLogLevel))
+	return log.With(logger, "time", log.DefaultTimestampUTC, "caller", log.DefaultCaller)
 }
 
 func initLogFlusher(logFileBackupCount, logMaxSize, logFileName string) *lumberjack.Logger {
