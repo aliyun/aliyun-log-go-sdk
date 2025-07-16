@@ -146,14 +146,20 @@ func (c *ShardConsumerWorker) callProcess(logGroupList *sls.LogGroupList, plm *s
 	}
 }
 
-func (c *ShardConsumerWorker) processInternal(logGroup *sls.LogGroupList) (rollBackCheckpoint string, err error) {
+func (c *ShardConsumerWorker) processInternal(logGroupList *sls.LogGroupList) (rollBackCheckpoint string, err error) {
 	defer func() {
 		if r := c.recoverIfPanic("panic in your process function"); r != nil {
 			err = fmt.Errorf("panic when process: %v", r)
 		}
 	}()
-
-	return c.processor.Process(c.shardId, logGroup, c.consumerCheckPointTracker)
+	// now we may have empty content(filter by query), we do this to avoid of npe inside user's processors
+	if logGroupList == nil {
+		logGroupList = &sls.LogGroupList{}
+	}
+	if logGroupList.LogGroups == nil {
+		logGroupList.LogGroups = make([]*sls.LogGroup, 0)
+	}
+	return c.processor.Process(c.shardId, logGroupList, c.consumerCheckPointTracker)
 }
 
 // call user shutdown func and flush checkpoint
