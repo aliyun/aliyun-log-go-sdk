@@ -384,7 +384,7 @@ type StoreViewIndex struct {
 type StoreViewErrors struct {
 	ProjectName string `json:"projectName"`
 	LogStore    string `json:"logstore"`
-	Status      string `json:"status"`
+	Status      int    `json:"status"`
 	Message     string `json:"message"`
 }
 
