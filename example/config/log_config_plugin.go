@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/aliyun/aliyun-log-go-sdk"
+
+	sls "github.com/aliyun/aliyun-log-go-sdk"
 	config "github.com/aliyun/aliyun-log-go-sdk/example/config/util"
 	"github.com/aliyun/aliyun-log-go-sdk/example/util"
 )
 
-
-func main() {
+func config_example() {
 	// log config sample
 	testConf := "test-conf"
 	exist, err := config.CheckConfigExist(testConf)
@@ -55,7 +55,6 @@ func main() {
 
 }
 
-
 func createPluginConfig(configName string, projectName string, logstore string) (err error) {
 	pluginConfig := new(sls.PluginLogConfigInputDetail)
 	sls.InitPluginLogConfigInputDetail(pluginConfig)
@@ -89,7 +88,7 @@ func createPluginConfig(configName string, projectName string, logstore string) 
 	return nil
 }
 
-func updatePluginConfig(configName string)  {
+func updatePluginConfig(configName string) {
 	logtailConfig, _ := util.Client.GetConfig(util.ProjectName, configName)
 	inputDetail, _ := sls.ConvertToPluginLogConfigInputDetail(logtailConfig.InputDetail)
 	inputDetail.AdjustTimeZone = true
