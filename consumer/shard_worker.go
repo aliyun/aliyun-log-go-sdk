@@ -115,9 +115,6 @@ func (c *ShardConsumerWorker) fetchLogs(cursor string) (shouldCallProcess bool, 
 	if cursor == plm.NextCursor { // already reach end of shard
 		c.saveCheckPointIfNeeded()
 		time.Sleep(noProgressSleepTime)
-		return true, &sls.LogGroupList{
-			LogGroups: make([]*sls.LogGroup, 0),
-		}, nil
 	}
 	return true, logGroupList, plm
 }
