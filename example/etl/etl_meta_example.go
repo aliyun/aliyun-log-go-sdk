@@ -8,7 +8,7 @@ import (
 	"github.com/aliyun/aliyun-log-go-sdk/example/util"
 )
 
-func main() {
+func etl_meta_example() {
 
 	fmt.Println("etl_meta example begin")
 	sls.GlobalForceUsingHTTP = true

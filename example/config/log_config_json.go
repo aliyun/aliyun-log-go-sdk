@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/aliyun/aliyun-log-go-sdk"
+
+	sls "github.com/aliyun/aliyun-log-go-sdk"
 	config "github.com/aliyun/aliyun-log-go-sdk/example/config/util"
 	"github.com/aliyun/aliyun-log-go-sdk/example/util"
 )
 
-
-func main() {
+func config_json_example() {
 	// log config sample
 	testConf := "test-conf"
 	exist, err := config.CheckConfigExist(testConf)
@@ -55,7 +55,6 @@ func main() {
 
 }
 
-
 func createJsonConfig(configName string, projectName string, logstore string) (err error) {
 	jsonConfig := new(sls.JSONConfigInputDetail)
 	sls.InitJSONConfigInputDetail(jsonConfig)
@@ -82,7 +81,7 @@ func createJsonConfig(configName string, projectName string, logstore string) (e
 	return nil
 }
 
-func updateJsonConfig(configName string)  {
+func updateJsonConfig(configName string) {
 	logtailConfig, _ := util.Client.GetConfig(util.ProjectName, configName)
 	inputDetail, _ := sls.ConvertToJSONConfigInputDetail(logtailConfig.InputDetail)
 	inputDetail.FilePattern = "*.log"

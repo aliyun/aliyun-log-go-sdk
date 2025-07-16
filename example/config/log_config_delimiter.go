@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/aliyun/aliyun-log-go-sdk"
+
+	sls "github.com/aliyun/aliyun-log-go-sdk"
 	config "github.com/aliyun/aliyun-log-go-sdk/example/config/util"
 	"github.com/aliyun/aliyun-log-go-sdk/example/util"
 )
 
-
-func main() {
+func delimiter_example() {
 	// log config sample
 	testConf := "test-conf"
 	exist, err := config.CheckConfigExist(testConf)
@@ -54,7 +54,6 @@ func main() {
 
 }
 
-
 func createDelimiterConfig(configName string, projectName string, logstore string) (err error) {
 	delimiterConfig := new(sls.DelimiterConfigInputDetail)
 	sls.InitDelimiterConfigInputDetail(delimiterConfig)
@@ -84,7 +83,7 @@ func createDelimiterConfig(configName string, projectName string, logstore strin
 	return nil
 }
 
-func updateDelimiterConfig(configName string)  {
+func updateDelimiterConfig(configName string) {
 	logtailConfig, _ := util.Client.GetConfig(util.ProjectName, configName)
 	inputDetail, _ := sls.ConvertToDelimiterConfigInputDetail(logtailConfig.InputDetail)
 	inputDetail.FilePattern = "*.log"
