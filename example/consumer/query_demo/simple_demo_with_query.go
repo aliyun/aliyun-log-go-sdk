@@ -28,7 +28,11 @@ func main() {
 		CursorPosition:  consumerLibrary.SPECIAL_TIMER_CURSOR,
 		CursorStartTime: 1706077849,
 		// Query is for log pre-handling before return to client, more info refer to https://www.alibabacloud.com/help/zh/sls/user-guide/rule-based-consumption
-		Query: "* | where cast(body_bytes_sent as bigint) > 14000",
+		// Query: "* | where cast(body_bytes_sent as bigint) > 14000",
+
+		// Processor is for rule based consumption, more info refer to https://www.alibabacloud.com/help/zh/sls/user-guide/rule-based-consumption
+		// prefer to use processor instead of query, query will be deprecated in the future
+		Processor: "consume-processor-1753854227-0001",
 	}
 
 	consumerWorker := consumerLibrary.InitConsumerWorkerWithCheckpointTracker(option, process)

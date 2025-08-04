@@ -73,7 +73,7 @@ type PullLogRequest struct {
 	Query            string
 	// Deprecated: PullMode is not used
 	PullMode     string
-	QueryId      string
+	Processor    string
 	CompressType int
 }
 
@@ -88,10 +88,11 @@ func (plr *PullLogRequest) ToURLParams() url.Values {
 	if plr.Query != "" {
 		urlVal.Add("query", plr.Query)
 		urlVal.Add("pullMode", "scan_on_stream")
-		if plr.QueryId != "" {
-			urlVal.Add("queryId", plr.QueryId)
-		}
 	}
+	if plr.Processor != "" {
+		urlVal.Add("processor", plr.Processor)
+	}
+
 	return urlVal
 }
 

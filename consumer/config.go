@@ -16,6 +16,7 @@ type LogHubConfig struct {
 	//:param Project:
 	//:param Logstore:
 	//:param Query: Filter rules Corresponding rules must be set when consuming based on rules, such as *| where a = 'xxx'
+	//:param Processor: name of consume processor, default is empty
 	//:param ConsumerGroupName:
 	//:param ConsumerName:
 	//:param CursorPosition: This options is used for initialization, will be ignored once consumer group is created and each shard has beeen started to be consumed.
@@ -60,6 +61,7 @@ type LogHubConfig struct {
 	Project                   string
 	Logstore                  string
 	Query                     string
+	Processor                 string
 	ConsumerGroupName         string
 	ConsumerName              string
 	CursorPosition            string

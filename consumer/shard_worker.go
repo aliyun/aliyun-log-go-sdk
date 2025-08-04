@@ -197,7 +197,7 @@ func (c *ShardConsumerWorker) sleepUtilNextFetch(lastFetchSuccessTime time.Time,
 
 	lastFetchRawSize := plm.RawSize
 	lastFetchGroupCount := plm.Count
-	if c.client.option.Query != "" {
+	if c.client.option.Query != "" || c.client.option.Processor != "" {
 		lastFetchRawSize = plm.RawSizeBeforeQuery
 		lastFetchGroupCount = plm.DataCountBeforeQuery
 	}

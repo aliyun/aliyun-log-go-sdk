@@ -66,6 +66,7 @@ LogHubConfig是提供给用户的配置类，用于配置消费策略，您可�
 |AutoCommitDisabled|是否禁用sdk自动提交checkpoint|非必填，默认不会禁用|
 |AutoCommitIntervalInMS|自动提交checkpoint的时间间隔|非必填，单位为MS，默认时间为60s|
 |Query|过滤规则  基于规则消费时必须设置对应规则 如 *| where a = 'xxx'|非必填|
+|Processor|消费处理器  基于规则消费时设置对应的消费处理标识 如 consume-processor-1, 推荐使用Processor代替Query|非必填|
 
 
 **自定义 logger**

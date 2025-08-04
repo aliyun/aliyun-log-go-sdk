@@ -83,6 +83,28 @@ func TestConsumerQueryNoData(t *testing.T) {
 
 }
 
+func TestConsumerProcessor(t *testing.T) {
+	option := LogHubConfig{
+		Endpoint: os.Getenv("LOG_TEST_ENDPOINT"),
+		CredentialsProvider: sls.NewStaticCredentialsProvider(
+			os.Getenv("LOG_TEST_ACCESS_KEY_ID"),
+			os.Getenv("LOG_TEST_ACCESS_KEY_SECRET"), ""),
+		Project:           os.Getenv("LOG_TEST_PROJECT"),
+		Logstore:          os.Getenv("LOG_TEST_LOGSTORE"),
+		ConsumerGroupName: "test-consumer",
+		ConsumerName:      "test-consumer-1",
+		CursorPosition:    END_CURSOR,
+		Processor:         "consume-processor-1753854227-0001",
+	}
+
+	worker := InitConsumerWorkerWithCheckpointTracker(option, process)
+
+	worker.Start()
+	time.Sleep(time.Second * 2000)
+	worker.StopAndWait()
+
+}
+
 func TestConsumerWithLogId(t *testing.T) {
 	option := LogHubConfig{
 		Endpoint: os.Getenv("LOG_TEST_ENDPOINT"),
