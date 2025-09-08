@@ -35,6 +35,9 @@ type MetricRemoteWriteConfig struct {
 	ReplicaField           string                 `json:"replica_field"`
 	ReplicaTimeoutSeconds  int                    `json:"replica_timeout_seconds"`
 	ShardGroupStrategyList ShardGroupStrategyList `json:"shard_group_strategy_list"`
+	TrimSameLabels         bool                   `json:"trim_same_labels"`
+	TrimEmptyLabels        bool                   `json:"trim_empty_labels"`
+	Utf8WriteEnable        bool                   `json:"utf8_write_enable"`
 }
 
 type ShardGroupStrategyList struct {
@@ -61,10 +64,10 @@ type ProjectStore struct {
 }
 
 type MetricsConfig struct {
-	QueryCacheConfig        MetricQueryCacheConfig         `json:"query_cache_config"`
-	ParallelConfig          MetricParallelConfig           `json:"parallel_config"`
-	DownSamplingConfig      MetricDownSamplingConfig       `json:"downsampling_config"`
-	PushdownConfig          MetricPushdownConfig           `json:"pushdown_config"`
-	RemoteWriteConfig       MetricRemoteWriteConfig        `json:"remote_write_config"`
+	QueryCacheConfig        *MetricQueryCacheConfig        `json:"query_cache_config"`
+	ParallelConfig          *MetricParallelConfig          `json:"parallel_config"`
+	DownSamplingConfig      *MetricDownSamplingConfig      `json:"downsampling_config"`
+	PushdownConfig          *MetricPushdownConfig          `json:"pushdown_config"`
+	RemoteWriteConfig       *MetricRemoteWriteConfig       `json:"remote_write_config"`
 	StoreViewRoutingConfigs []MetricStoreViewRoutingConfig `json:"store_view_routing_config"`
 }
