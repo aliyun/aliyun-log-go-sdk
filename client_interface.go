@@ -336,6 +336,9 @@ type ClientInterface interface {
 	// GetLogsToCompletedV3 query logs with [from, to) time range to completed
 	GetLogsToCompletedV3(project, logstore string, req *GetLogRequest) (*GetLogsV3Response, error)
 
+	DeleteLogs(project, logstore string, req *DeleteLogsRequest) (*DeleteLogsResponse, error)
+	GetDeleteLogs(project, logstore string, req *GetDeleteLogsRequest) (*DeleteLogsProgress, error)
+	ListDeleteLogs(project, logstore string, req *ListDeleteLogsRequest) (*ListDeleteLogsResponse, error)
 	// #################### Index Operations #####################
 	// CreateIndex ...
 	CreateIndex(project, logstore string, index Index) error

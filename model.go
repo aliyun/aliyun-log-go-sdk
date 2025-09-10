@@ -26,6 +26,37 @@ type GetLogRequest struct {
 	IsAccurate    bool   `json:"accurate"`
 }
 
+type DeleteLogsRequest struct {
+	Topic string `json:"topic"`
+	From  int64  `json:"from"`
+	To    int64  `json:"to"`
+	Query string `json:"query"`
+}
+
+type DeleteLogsResponse struct {
+	TaskId string `json:"taskId"`
+}
+
+type GetDeleteLogsRequest struct {
+	TaskId string
+}
+
+type DeleteLogsProgress struct {
+	TaskId   string `json:"taskId"`
+	Progress int    `json:"progress"`
+}
+
+type ListDeleteLogsRequest struct {
+	Offset int `json:"offset"`
+	Size   int `json:"size"`
+}
+
+type ListDeleteLogsResponse struct {
+	Total int                  `json:"total"`
+	Count int                  `json:"count"`
+	Tasks []DeleteLogsProgress `json:"tasks"`
+}
+
 func (glr *GetLogRequest) ToURLParams() url.Values {
 	urlVal := url.Values{}
 	urlVal.Add("type", "log")
