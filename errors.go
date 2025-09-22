@@ -11,7 +11,7 @@ func invalidJsonRespError(body string, header http.Header, httpCode int) error {
 		string(body),
 		header,
 		httpCode,
-		fmt.Errorf("server returned an response with invalid JSON format"),
+		fmt.Errorf("server returned an response with invalid JSON format, httpCode: %d", httpCode),
 	)
 }
 

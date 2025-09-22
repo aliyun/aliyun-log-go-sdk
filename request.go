@@ -52,9 +52,7 @@ func retryReadErrorCheck(ctx context.Context, err error) (bool, error) {
 		}
 	case *BadResponseError:
 		if RetryOnServerErrorEnabled {
-			if e.HTTPCode >= 500 && e.HTTPCode <= 599 {
-				return true, e
-			}
+			return true, e
 		}
 	default:
 		return false, e
