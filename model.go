@@ -401,6 +401,12 @@ type ListStoreViewsResponse struct {
 	StoreViews []string `json:"storeviews"`
 }
 
+type ListProjectRequest struct {
+	Offset      int    `json:"offset"`
+	Size        int    `json:"size"`
+	Description string `json:"description,omitempty"` // use it to filter projects by description, support fuzzy search
+}
+
 // If cursor is unknown, returns empty string
 // If pullLogs with non-empty query or consumer with non-empty query, returns empty string
 func (l *LogGroup) GetCursor() string {
