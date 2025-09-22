@@ -2140,3 +2140,13 @@ func (c *TokenAutoUpdateClient) GetStoreViewIndex(project string, storeViewName 
 	}
 	return
 }
+
+func (c *TokenAutoUpdateClient) ListProjectV3(req *ListProjectRequest) (projects []LogProject, count, total int, err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		projects, count, total, err = c.logClient.ListProjectV3(req)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}

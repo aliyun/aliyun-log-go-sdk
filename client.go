@@ -336,13 +336,27 @@ func (c *Client) ListProject() (projectNames []string, err error) {
 // the region is related with the client's endpoint
 // ref https://www.alibabacloud.com/help/doc-detail/74955.htm
 func (c *Client) ListProjectV2(offset, size int) (projects []LogProject, count, total int, err error) {
+	return c.ListProjectV3(&ListProjectRequest{
+		Offset: offset,
+		Size:   size,
+	})
+}
+
+func (c *Client) ListProjectV3(req *ListProjectRequest) (projects []LogProject, count, total int, err error) {
 	h := map[string]string{
 		"x-log-bodyrawsize": "0",
 	}
 
 	urlVal := url.Values{}
-	urlVal.Add("offset", strconv.Itoa(offset))
-	urlVal.Add("size", strconv.Itoa(size))
+	if req.Offset > 0 {
+		urlVal.Add("offset", strconv.Itoa(req.Offset))
+	}
+	if req.Size > 0 {
+		urlVal.Add("size", strconv.Itoa(req.Size))
+	}
+	if req.Description != "" {
+		urlVal.Add("description", req.Description)
+	}
 	uri := fmt.Sprintf("/?%s", urlVal.Encode())
 	proj := convert(c, "")
 
