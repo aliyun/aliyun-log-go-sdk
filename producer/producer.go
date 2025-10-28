@@ -294,6 +294,7 @@ func (producer *Producer) Start() {
 
 // Limited closing transfer parameter nil, safe closing transfer timeout time, timeout Ms parameter in milliseconds
 func (producer *Producer) Close(timeoutMs int64) error {
+	producer.monitor.Stop()
 	startCloseTime := time.Now()
 	producer.sendCloseProdcerSignal()
 	producer.moverWaitGroup.Wait()
@@ -310,6 +311,7 @@ func (producer *Producer) Close(timeoutMs int64) error {
 }
 
 func (producer *Producer) SafeClose() {
+	producer.monitor.Stop()
 	producer.sendCloseProdcerSignal()
 	producer.moverWaitGroup.Wait()
 	level.Info(producer.logger).Log("msg", "Mover close finish")
