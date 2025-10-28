@@ -288,6 +288,7 @@ func (producer *Producer) Start() {
 	producer.ioThreadPoolWaitGroup.Add(1)
 	go producer.threadPool.start(producer.ioWorkerWaitGroup, producer.ioThreadPoolWaitGroup)
 	if !producer.producerConfig.DisableRuntimeMetrics {
+		producer.monitor.wg.Add(1)
 		go producer.monitor.reportThread(time.Minute, producer.logger)
 	}
 }

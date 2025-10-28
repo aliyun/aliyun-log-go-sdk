@@ -1,6 +1,7 @@
 package producer
 
 import (
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -24,6 +25,7 @@ type ProducerMetrics struct {
 type ProducerMonitor struct {
 	metrics atomic.Value // *ProducerMetrics
 	stopCh  chan struct{}
+	wg      sync.WaitGroup
 }
 
 func newProducerMonitor() *ProducerMonitor {
@@ -36,6 +38,7 @@ func newProducerMonitor() *ProducerMonitor {
 
 func (m *ProducerMonitor) Stop() {
 	close(m.stopCh)
+	m.wg.Wait()
 }
 
 func (m *ProducerMonitor) recordSuccess(sendBegin time.Time, sendEnd time.Time) {
@@ -79,23 +82,24 @@ func (m *ProducerMonitor) getAndResetMetrics() *ProducerMetrics {
 }
 
 func (m *ProducerMonitor) reportThread(reportInterval time.Duration, logger log.Logger) {
+	defer m.wg.Done()
 	ticker := time.NewTicker(reportInterval)
 	for {
 		select {
 		case <-ticker.C:
+			metrics := m.getAndResetMetrics()
+			level.Info(logger).Log("msg", "report status",
+				"sendBatch", metrics.sendBatch.String(),
+				"retryCount", metrics.retryCount.Load(),
+				"createBatch", metrics.createBatch.Load(),
+				"onSuccess", metrics.onSuccess.String(),
+				"onFail", metrics.onFail.String(),
+				"waitMemory", metrics.waitMemory.String(),
+				"waitMemoryFailCount", metrics.waitMemoryFailCount.Load(),
+			)
 		case <-m.stopCh:
 			ticker.Stop()
 			return
 		}
-		metrics := m.getAndResetMetrics()
-		level.Info(logger).Log("msg", "report status",
-			"sendBatch", metrics.sendBatch.String(),
-			"retryCount", metrics.retryCount.Load(),
-			"createBatch", metrics.createBatch.Load(),
-			"onSuccess", metrics.onSuccess.String(),
-			"onFail", metrics.onFail.String(),
-			"waitMemory", metrics.waitMemory.String(),
-			"waitMemoryFailCount", metrics.waitMemoryFailCount.Load(),
-		)
 	}
 }
