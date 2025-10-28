@@ -33,18 +33,14 @@ func (threadPool *IoThreadPool) addTask(batch *ProducerBatch) {
 func (threadPool *IoThreadPool) start(ioWorkerWaitGroup *sync.WaitGroup, ioThreadPoolwait *sync.WaitGroup) {
 	defer ioThreadPoolwait.Done()
 	for task := range threadPool.taskCh {
-		if task == nil {
-			level.Info(threadPool.logger).Log("msg", "All cache tasks in the thread pool have been successfully sent")
-			threadPool.stopped.Store(true)
-			return
-		}
-
 		threadPool.ioworker.startSendTask(ioWorkerWaitGroup)
 		go func(producerBatch *ProducerBatch) {
 			defer threadPool.ioworker.closeSendTask(ioWorkerWaitGroup)
 			threadPool.ioworker.sendToServer(producerBatch)
 		}(task)
 	}
+	level.Info(threadPool.logger).Log("msg", "All cache tasks in the thread pool have been successfully sent")
+	threadPool.stopped.Store(true)
 }
 
 func (threadPool *IoThreadPool) ShutDown() {
