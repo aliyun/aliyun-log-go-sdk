@@ -25,6 +25,7 @@ type ProducerMetrics struct {
 type ProducerMonitor struct {
 	metrics atomic.Value // *ProducerMetrics
 	stopCh  chan struct{}
+	once    sync.Once
 	wg      sync.WaitGroup
 }
 
@@ -37,7 +38,9 @@ func newProducerMonitor() *ProducerMonitor {
 }
 
 func (m *ProducerMonitor) Stop() {
-	close(m.stopCh)
+	m.once.Do(func() {
+		close(m.stopCh)
+	})
 	m.wg.Wait()
 }
 
@@ -82,6 +85,7 @@ func (m *ProducerMonitor) getAndResetMetrics() *ProducerMetrics {
 }
 
 func (m *ProducerMonitor) reportThread(reportInterval time.Duration, logger log.Logger) {
+	m.wg.Add(1)
 	defer m.wg.Done()
 	ticker := time.NewTicker(reportInterval)
 	for {
