@@ -28,6 +28,7 @@ type Producer struct {
 	logger                log.Logger
 	producerLogGroupSize  int64
 	monitor               *ProducerMonitor
+	stsCloseOnce          sync.Once
 }
 
 func NewProducer(producerConfig *ProducerConfig) (*Producer, error) {
@@ -332,7 +333,9 @@ func (producer *Producer) sendCloseProdcerSignal() {
 
 func (producer *Producer) closeStstokenChannel() {
 	if producer.producerConfig.StsTokenShutDown != nil {
-		close(producer.producerConfig.StsTokenShutDown)
-		level.Info(producer.logger).Log("msg", "producer closed ststoken")
+		producer.stsCloseOnce.Do(func() {
+			close(producer.producerConfig.StsTokenShutDown)
+			level.Info(producer.logger).Log("msg", "producer closed ststoken")
+		})
 	}
 }
