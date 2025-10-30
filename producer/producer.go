@@ -28,6 +28,7 @@ type Producer struct {
 	logger                log.Logger
 	producerLogGroupSize  int64
 	monitor               *ProducerMonitor
+	stsCloseOnce          sync.Once
 }
 
 func NewProducer(producerConfig *ProducerConfig) (*Producer, error) {
@@ -288,7 +289,6 @@ func (producer *Producer) Start() {
 	producer.ioThreadPoolWaitGroup.Add(1)
 	go producer.threadPool.start(producer.ioWorkerWaitGroup, producer.ioThreadPoolWaitGroup)
 	if !producer.producerConfig.DisableRuntimeMetrics {
-		producer.monitor.wg.Add(1)
 		go producer.monitor.reportThread(time.Minute, producer.logger)
 	}
 }
@@ -333,7 +333,9 @@ func (producer *Producer) sendCloseProdcerSignal() {
 
 func (producer *Producer) closeStstokenChannel() {
 	if producer.producerConfig.StsTokenShutDown != nil {
-		close(producer.producerConfig.StsTokenShutDown)
-		level.Info(producer.logger).Log("msg", "producer closed ststoken")
+		producer.stsCloseOnce.Do(func() {
+			close(producer.producerConfig.StsTokenShutDown)
+			level.Info(producer.logger).Log("msg", "producer closed ststoken")
+		})
 	}
 }
