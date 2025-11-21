@@ -69,7 +69,7 @@ func (c *ShardConsumerWorker) runLoop() {
 
 	cursor, endCursor := c.getInitCursor()
 	c.endCursor = endCursor
-	level.Info(c.logger).Log("msg", "runLoop got init cursor", "cursor", cursor)
+	level.Info(c.logger).Log("msg", "runLoop got init cursor", "cursor", cursor, "endCursor", endCursor)
 
 	for !c.shutDownFlag.Load() {
 		lastFetchTime := time.Now()

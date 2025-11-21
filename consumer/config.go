@@ -31,7 +31,7 @@ type LogHubConfig struct {
 	// server will consider it's offline and re-assign its task to another consumer.
 	//:param MaxFetchLogGroupCount: default 1000, fetch size in each request, normally use default. maximum is 1000, could be lower. the lower the size the memory efficiency might be better.
 	//:param CursorStartTime: Will be used when cursor_position is SPECIAL_TIMER_CURSOR, it's log receiving time. The unit of parameter is seconds.
-	//:param CursorEndTime: Will be used when cursor_position is SPECIAL_TIMER_CURSOR, it's log receiving time. The unit of parameter is seconds. If is zero, no end time.
+	//:param CursorEndTime: Consumer will keep consuming data until CursorEndTime reached. If set to zero, the consumer keeps consuming and never stops. It's log receiving time. The unit of parameter is seconds.
 	//:param InOrder:
 	// 	default False, during consuption, when shard is splitted,
 	// 	if need to consume the newly splitted shard after its parent shard (read-only) is finished consumption or not.
