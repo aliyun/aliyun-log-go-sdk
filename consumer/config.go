@@ -30,7 +30,8 @@ type LogHubConfig struct {
 	// default HeartbeatIntervalInSecond * 3, once a client doesn't report to server HeartbeatTimeoutInSecond seconds,
 	// server will consider it's offline and re-assign its task to another consumer.
 	//:param MaxFetchLogGroupCount: default 1000, fetch size in each request, normally use default. maximum is 1000, could be lower. the lower the size the memory efficiency might be better.
-	//:param CursorStartTime: Will be used when cursor_position when could be "begin", "end", "specific time format in time stamp", it's log receiving time. The unit of parameter is seconds.
+	//:param CursorStartTime: Will be used when cursor_position is SPECIAL_TIMER_CURSOR, it's log receiving time. The unit of parameter is seconds.
+	//:param CursorEndTime: Consumer will keep consuming data until CursorEndTime reached. If set to zero, the consumer keeps consuming and never stops. It's log receiving time. The unit of parameter is seconds.
 	//:param InOrder:
 	// 	default False, during consuption, when shard is splitted,
 	// 	if need to consume the newly splitted shard after its parent shard (read-only) is finished consumption or not.
@@ -70,6 +71,7 @@ type LogHubConfig struct {
 	DataFetchIntervalInMs     int64
 	MaxFetchLogGroupCount     int
 	CursorStartTime           int64 // Unix time stamp; Units are seconds.
+	CursorEndTime             int64 // Unix time stamp; Units are seconds. If is zero, no end time.
 	InOrder                   bool
 	Logger                    log.Logger
 	AllowLogLevel             string

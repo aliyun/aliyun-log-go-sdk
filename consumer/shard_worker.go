@@ -35,6 +35,7 @@ type ShardConsumerWorker struct {
 	stopped                *atomic.Bool
 	startOnceFlag          sync.Once
 	ioThrottler            ioThrottler
+	endCursor              string
 }
 
 func newShardConsumerWorker(shardId int, consumerClient *ConsumerClient, consumerHeartBeat *ConsumerHeartBeat, processor Processor, logger log.Logger, ioThrottler ioThrottler) *ShardConsumerWorker {
@@ -66,13 +67,14 @@ func (c *ShardConsumerWorker) runLoop() {
 		c.doShutDown()
 	}()
 
-	cursor := c.getInitCursor()
-	level.Info(c.logger).Log("msg", "runLoop got init cursor", "cursor", cursor)
+	cursor, endCursor := c.getInitCursor()
+	c.endCursor = endCursor
+	level.Info(c.logger).Log("msg", "runLoop got init cursor", "cursor", cursor, "endCursor", endCursor)
 
 	for !c.shutDownFlag.Load() {
 		lastFetchTime := time.Now()
-		shouldCallProcess, logGroupList, plm := c.fetchLogs(cursor)
-		if !shouldCallProcess {
+		logGroupList, plm, err := c.fetchLogs(cursor, endCursor)
+		if err != nil {
 			continue
 		}
 
@@ -81,32 +83,38 @@ func (c *ShardConsumerWorker) runLoop() {
 			break
 		}
 
+		// we already reach consumer's endCursor, but we can't release the shard to aviod shard re-assignment.
+		// just sleep longer to reduce meanless data fetching.
+		if endCursor != "" && cursor == endCursor {
+			time.Sleep(time.Second * 5)
+		}
+
 		c.sleepUtilNextFetch(lastFetchTime, plm)
 	}
 }
 
-func (consumer *ShardConsumerWorker) getInitCursor() string {
+func (consumer *ShardConsumerWorker) getInitCursor() (string, string) {
 	for !consumer.shutDownFlag.Load() {
-		initCursor, err := consumer.consumerInitializeTask()
+		beginCursor, endCursor, err := consumer.consumerInitializeTask()
 		if err == nil {
-			return initCursor
+			return beginCursor, endCursor
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
-	return ""
+	return "", ""
 }
 
-func (c *ShardConsumerWorker) fetchLogs(cursor string) (shouldCallProcess bool, logGroupList *sls.LogGroupList, plm *sls.PullLogMeta) {
+func (c *ShardConsumerWorker) fetchLogs(cursor string, endCursor string) (logGroupList *sls.LogGroupList, plm *sls.PullLogMeta, err error) {
 	c.ioThrottler.Acquire()
 	defer c.ioThrottler.Release()
 
 	start := time.Now()
-	logGroupList, plm, err := c.client.pullLogs(c.shardId, cursor)
+	logGroupList, plm, err = c.client.pullLogs(c.shardId, cursor, endCursor)
 	c.monitor.RecordFetchRequest(plm, err, start)
 
 	if err != nil {
 		time.Sleep(fetchFailedSleepTime)
-		return false, nil, nil
+		return nil, nil, err
 	}
 
 	c.consumerCheckPointTracker.setCurrentCursor(cursor)
@@ -116,7 +124,7 @@ func (c *ShardConsumerWorker) fetchLogs(cursor string) (shouldCallProcess bool, 
 		c.saveCheckPointIfNeeded()
 		time.Sleep(noProgressSleepTime)
 	}
-	return true, logGroupList, plm
+	return logGroupList, plm, nil
 }
 
 func (c *ShardConsumerWorker) callProcess(logGroupList *sls.LogGroupList, plm *sls.PullLogMeta) (nextCursor string) {

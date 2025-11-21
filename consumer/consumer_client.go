@@ -139,7 +139,8 @@ func (consumer *ConsumerClient) getCursor(shardId int, from string) (string, err
 	return cursor, err
 }
 
-func (consumer *ConsumerClient) pullLogs(shardId int, cursor string) (gl *sls.LogGroupList, plm *sls.PullLogMeta, err error) {
+// @param endCursor can be empty if not set
+func (consumer *ConsumerClient) pullLogs(shardId int, cursor string, endCursor string) (gl *sls.LogGroupList, plm *sls.PullLogMeta, err error) {
 	plr := &sls.PullLogRequest{
 		Project:          consumer.option.Project,
 		Logstore:         consumer.option.Logstore,
@@ -149,6 +150,9 @@ func (consumer *ConsumerClient) pullLogs(shardId int, cursor string) (gl *sls.Lo
 		LogGroupMaxCount: consumer.option.MaxFetchLogGroupCount,
 		CompressType:     consumer.option.CompressType,
 		Processor:        consumer.option.Processor,
+	}
+	if endCursor != "" {
+		plr.EndCursor = endCursor
 	}
 	for retry := 0; retry < 3; retry++ {
 		gl, plm, err = consumer.client.PullLogsWithQuery(plr)
