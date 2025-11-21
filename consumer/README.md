@@ -52,7 +52,8 @@ LogHubConfig是提供给用户的配置类，用于配置消费策略，您可�
 |HeartbeatTimeoutInSecond|心跳的超时间隔|非必填，默认时间为HeartbeatIntervalInSecond的3倍, sdk会根据心跳时间与服务器确认alive，持续心跳失败达到超时时间后后，服务器可重新分配该超时shard|
 |DataFetchIntervalInMs|数据默认拉取的间隔|非必填，默认为200ms|
 |MaxFetchLogGroupCount|数据一次拉取的log group数量|非必填，默认为1000|
-|CursorStartTime|数据点位的时间戳|非必填，CursorPosition为SPECIAL_TIME_CURSOR时需填写|
+|CursorStartTime|数据点位的时间戳，消费组首次创建时将会从此处开始消费，后续消费从消费位点处继续|非必填，CursorPosition为SPECIAL_TIME_CURSOR时需填写|
+|CursorEndTime|数据点位的时间戳，消费到此位点后会停止继续消费新数据（消费者对象会仍然处于 running 状态，只是不拉取新数据了）。如果未设置或者设置为0，则消费永不停止。|非必填，默认为0|
 |InOrder|shard分裂后是否in order消费|非必填，默认为false，当为true时，分裂shard会在老的read only shard消费完后再继续消费|
 |Logger|自定义日志Logger|非必填，此logger只用于记录消费者自身状态。<ul><li>如果非 nil，会忽略 AllowLogLevel /   LogFileName/ IsJsonType/ LogMaxSize/ LogMaxBackups/ LogCompass 参数。</li><li>如果为 nil，会根据 AllowLogLevel /   LogFileName/ IsJsonType/ LogMaxSize/ LogMaxBackups/ LogCompass 参数自动创建一个 logger 用于记录本地运行日志。</li></ul>|
 |AllowLogLevel|允许的日志级别|非必填，默认为info，日志级别由低到高为debug, info, warn, error，仅高于此AllowLogLevel的才会被log出来|

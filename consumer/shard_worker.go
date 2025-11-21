@@ -83,6 +83,12 @@ func (c *ShardConsumerWorker) runLoop() {
 			break
 		}
 
+		// we already reach consumer's endCursor, but we can't release the shard to aviod shard re-assignment.
+		// just sleep longer to reduce meanless data fetching.
+		if endCursor != "" && cursor == endCursor {
+			time.Sleep(time.Second * 5)
+		}
+
 		c.sleepUtilNextFetch(lastFetchTime, plm)
 	}
 }
