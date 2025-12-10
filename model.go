@@ -325,6 +325,7 @@ type Index struct {
 	LogReduce              bool                `json:"log_reduce"`
 	LogReduceWhiteListDict []string            `json:"log_reduce_white_list,omitempty"`
 	LogReduceBlackListDict []string            `json:"log_reduce_black_list,omitempty"`
+	ScanIndex              bool                `json:"scan_index,omitempty"`
 }
 
 // CreateDefaultIndex return a full text index config
