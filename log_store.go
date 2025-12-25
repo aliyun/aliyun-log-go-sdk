@@ -599,32 +599,43 @@ func (s *LogStore) GetLogsBytesWithQuery(plr *PullLogRequest) ([]byte, *PullLogM
 	}
 
 	// decompress data
+	out, err := decompressResponse(rawSize, buf, r)
+	if err != nil {
+		return nil, nil, err
+	}
+	return out, pullMeta, nil
+}
+
+func decompressResponse(rawSize int, compressedBody []byte, r *http.Response) ([]byte, error) {
+	if rawSize == 0 {
+		return make([]byte, 0), nil
+	}
 	out := make([]byte, rawSize)
 	compressType, err := parseHeaderString(r.Header, "X-Log-Compresstype")
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	switch compressType {
 	case "lz4":
 		uncompressedSize := 0
-		if uncompressedSize, err = lz4.UncompressBlock(buf, out); err != nil {
-			return nil, nil, err
+		if uncompressedSize, err = lz4.UncompressBlock(compressedBody, out); err != nil {
+			return nil, err
 		}
 		if uncompressedSize != rawSize {
-			return nil, nil, fmt.Errorf("uncompressed size %d does not match 'x-log-bodyrawsize' %d", uncompressedSize, rawSize)
+			return nil, fmt.Errorf("uncompressed size %d does not match 'x-log-bodyrawsize' %d", uncompressedSize, rawSize)
 		}
 	case "zstd":
-		out, err = slsZstdCompressor.Decompress(buf, out)
+		out, err = slsZstdCompressor.Decompress(compressedBody, out)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		if len(out) != rawSize {
-			return nil, nil, fmt.Errorf("uncompressed size %d does not match 'x-log-bodyrawsize' %d", len(out), rawSize)
+			return nil, fmt.Errorf("uncompressed size %d does not match 'x-log-bodyrawsize' %d", len(out), rawSize)
 		}
 	default:
-		return nil, nil, fmt.Errorf("unexpected compress type: %s", compressType)
+		return nil, fmt.Errorf("unexpected compress type: %s", compressType)
 	}
-	return out, pullMeta, nil
+	return out, nil
 }
 
 // LogsBytesDecode decodes logs binary data returned by GetLogsBytes API
@@ -977,7 +988,11 @@ func (s *LogStore) getLogsV3Internal(req *GetLogRequest) (*GetLogsV3Response, *h
 	h := map[string]string{
 		"x-log-bodyrawsize": fmt.Sprintf("%v", len(reqBody)),
 		"Content-Type":      "application/json",
-		"Accept-Encoding":   "lz4",
+	}
+	if req.CompressType == Compress_ZSTD {
+		h["Accept-Encoding"] = "zstd"
+	} else {
+		h["Accept-Encoding"] = "lz4"
 	}
 	uri := fmt.Sprintf("/logstores/%s/logs", s.Name)
 	r, err := request(s.project, "POST", uri, h, reqBody)
@@ -1003,12 +1018,9 @@ func (s *LogStore) getLogsV3Internal(req *GetLogRequest) (*GetLogsV3Response, *h
 			if err != nil {
 				return nil, nil, NewBadResponseError(string(respBody), r.Header, r.StatusCode)
 			}
-			out := make([]byte, bodyRawSize)
-			if bodyRawSize != 0 {
-				len, err := lz4.UncompressBlock(respBody, out)
-				if err != nil || int64(len) != bodyRawSize {
-					return nil, nil, NewBadResponseError(string(respBody), r.Header, r.StatusCode)
-				}
+			out, err := decompressResponse(int(bodyRawSize), respBody, r)
+			if err != nil {
+				return nil, nil, err
 			}
 			respBody = out
 		}
