@@ -24,7 +24,7 @@ type GetLogRequest struct {
 	ToNsPart      int32  `json:"toNs"`
 	NeedHighlight bool   `json:"highlight"`
 	IsAccurate    bool   `json:"accurate"`
-	CompressType  int    `json:"-"`
+	CompressType  int    `json:"-"` // Compress_ZSTD or Compress_LZ4, default is Compress_LZ4
 }
 
 func (glr *GetLogRequest) ToURLParams() url.Values {
