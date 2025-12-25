@@ -607,6 +607,9 @@ func (s *LogStore) GetLogsBytesWithQuery(plr *PullLogRequest) ([]byte, *PullLogM
 }
 
 func decompressResponse(rawSize int, compressedBody []byte, r *http.Response) ([]byte, error) {
+	if rawSize == 0 {
+		return make([]byte, 0), nil
+	}
 	out := make([]byte, rawSize)
 	compressType, err := parseHeaderString(r.Header, "X-Log-Compresstype")
 	if err != nil {
