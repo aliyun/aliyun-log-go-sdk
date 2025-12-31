@@ -361,6 +361,26 @@ func (c *TokenAutoUpdateClient) UpdateLogStoreMeteringMode(project string, logst
 	return
 }
 
+func (c *TokenAutoUpdateClient) GetMetricStoreMeteringMode(project string, metricStore string) (res *GetMeteringModeResponse, err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		res, err = c.logClient.GetMetricStoreMeteringMode(project, metricStore)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
+func (c *TokenAutoUpdateClient) UpdateMetricStoreMeteringMode(project string, metricStore string, meteringMode string) (err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		err = c.logClient.UpdateMetricStoreMeteringMode(project, metricStore, meteringMode)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
 func (c *TokenAutoUpdateClient) ListMachines(project, machineGroupName string) (ms []*Machine, total int, err error) {
 	for i := 0; i < c.maxTryTimes; i++ {
 		ms, total, err = c.logClient.ListMachines(project, machineGroupName)

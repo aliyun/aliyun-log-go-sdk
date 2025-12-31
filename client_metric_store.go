@@ -53,3 +53,16 @@ func (c *Client) DeleteMetricStore(project, name string) error {
 func (c *Client) GetMetricStore(project, name string) (*LogStore, error) {
 	return c.GetLogStore(project, name)
 }
+
+// GetMetricStoreMeteringMode get the metering mode of metric store, eg. ChargeByFunction / ChargeByDataIngest
+func (c *Client) GetMetricStoreMeteringMode(project string, metricStore string) (*GetMeteringModeResponse, error) {
+	ms := convertLogstore(c, project, metricStore)
+	return ms.GetMetricStoreMeteringMode()
+}
+
+// UpdateMetricStoreMeteringMode update the metering mode of metric store, eg. ChargeByFunction / ChargeByDataIngest
+// Warning: this method may affect your billings, for more details ref: https://www.aliyun.com/price/detail/sls
+func (c *Client) UpdateMetricStoreMeteringMode(project string, metricStore string, meteringMode string) error {
+	ms := convertLogstore(c, project, metricStore)
+	return ms.UpdateMetricStoreMeteringMode(meteringMode)
+}

@@ -160,6 +160,12 @@ type ClientInterface interface {
 	DeleteMetricStore(project, name string) error
 	// GetMetricStore return a metric store.
 	GetMetricStore(project, name string) (*LogStore, error)
+	// GetMetricStoreMeteringMode get the metering mode of metric store, eg. ChargeByFunction / ChargeByDataIngest
+	GetMetricStoreMeteringMode(project string, metricStore string) (*GetMeteringModeResponse, error)
+	// UpdateMetricStoreMeteringMode update the metering mode of metric store, eg. ChargeByFunction / ChargeByDataIngest
+	//
+	// Warning: this method may affect your billings, for more details ref: https://www.aliyun.com/price/detail/sls
+	UpdateMetricStoreMeteringMode(project string, metricStore string, meteringMode string) error
 
 	// #################### EventStore Operations #####################
 	// CreateEventStore creates a new event store in SLS.
