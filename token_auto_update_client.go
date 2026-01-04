@@ -1021,6 +1021,36 @@ func (c *TokenAutoUpdateClient) GetLogsToCompletedV3(project, logstore string, r
 	return
 }
 
+func (c *TokenAutoUpdateClient) DeleteLogs(project, logstore string, req *DeleteLogsRequest) (r *DeleteLogsResponse, err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		r, err = c.logClient.DeleteLogs(project, logstore, req)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
+func (c *TokenAutoUpdateClient) GetDeleteLogs(project, logstore string, req *GetDeleteLogsRequest) (r *DeleteLogsProgress, err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		r, err = c.logClient.GetDeleteLogs(project, logstore, req)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
+func (c *TokenAutoUpdateClient) ListDeleteLogs(project, logstore string, req *ListDeleteLogsRequest) (r *ListDeleteLogsResponse, err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		r, err = c.logClient.ListDeleteLogs(project, logstore, req)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
 func (c *TokenAutoUpdateClient) GetLogLinesV2(project, logstore string, req *GetLogRequest) (r *GetLogLinesResponse, err error) {
 	for i := 0; i < c.maxTryTimes; i++ {
 		r, err = c.logClient.GetLogLinesV2(project, logstore, req)
