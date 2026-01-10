@@ -37,7 +37,9 @@ func main() {
 
 	// Example 2: Enable multimodal configuration
 	fmt.Println("=== Example 2: Enable multimodal configuration ===")
-	err = client.PutLogStoreMultimodalConfiguration(project, logstore, "Enabled")
+	err = client.PutLogStoreMultimodalConfiguration(project, logstore, &sls.PutLogStoreMultimodalConfigurationRequest{
+		Status: sls.MultimodalEnabled,
+	})
 	if err != nil {
 		fmt.Printf("Failed to enable multimodal configuration: %v\n", err)
 	} else {
@@ -47,7 +49,11 @@ func main() {
 
 	// Example 3: Enable with anonymous write
 	fmt.Println("=== Example 3: Enable multimodal configuration with anonymous write ===")
-	err = client.PutLogStoreMultimodalConfiguration(project, logstore, "Enabled", "Enabled")
+	anonymousWriteEnabled := sls.MultimodalEnabled
+	err = client.PutLogStoreMultimodalConfiguration(project, logstore, &sls.PutLogStoreMultimodalConfigurationRequest{
+		Status:         sls.MultimodalEnabled,
+		AnonymousWrite: &anonymousWriteEnabled,
+	})
 	if err != nil {
 		fmt.Printf("Failed to enable multimodal configuration with anonymous write: %v\n", err)
 	} else {
@@ -70,7 +76,11 @@ func main() {
 
 	// Example 5: Disable anonymous write
 	fmt.Println("=== Example 5: Disable anonymous write ===")
-	err = client.PutLogStoreMultimodalConfiguration(project, logstore, "Enabled", "Disabled")
+	anonymousWriteDisabled := sls.MultimodalDisabled
+	err = client.PutLogStoreMultimodalConfiguration(project, logstore, &sls.PutLogStoreMultimodalConfigurationRequest{
+		Status:         sls.MultimodalEnabled,
+		AnonymousWrite: &anonymousWriteDisabled,
+	})
 	if err != nil {
 		fmt.Printf("Failed to disable anonymous write: %v\n", err)
 	} else {
@@ -80,7 +90,9 @@ func main() {
 
 	// Example 6: Disable multimodal configuration
 	fmt.Println("=== Example 6: Disable multimodal configuration ===")
-	err = client.PutLogStoreMultimodalConfiguration(project, logstore, "Disabled")
+	err = client.PutLogStoreMultimodalConfiguration(project, logstore, &sls.PutLogStoreMultimodalConfigurationRequest{
+		Status: sls.MultimodalDisabled,
+	})
 	if err != nil {
 		fmt.Printf("Failed to disable multimodal configuration: %v\n", err)
 	} else {

@@ -2201,9 +2201,9 @@ func (c *TokenAutoUpdateClient) GetLogStoreMultimodalConfiguration(project, logs
 	return
 }
 
-func (c *TokenAutoUpdateClient) PutLogStoreMultimodalConfiguration(project, logstore, status string, anonymousWrite ...string) (err error) {
+func (c *TokenAutoUpdateClient) PutLogStoreMultimodalConfiguration(project, logstore string, req *PutLogStoreMultimodalConfigurationRequest) (err error) {
 	for i := 0; i < c.maxTryTimes; i++ {
-		err = c.logClient.PutLogStoreMultimodalConfiguration(project, logstore, status, anonymousWrite...)
+		err = c.logClient.PutLogStoreMultimodalConfiguration(project, logstore, req)
 		if !c.processError(err) {
 			return
 		}

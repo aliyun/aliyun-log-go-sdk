@@ -6,24 +6,23 @@ import (
 	"io/ioutil"
 )
 
-// MultimodalConfiguration represents the multimodal configuration of a logstore
-type MultimodalConfiguration struct {
-	Status         string `json:"status"`
-	AnonymousWrite string `json:"anonymousWrite,omitempty"`
-}
+type MultimodalStatus string
 
-// GetLogStoreMultimodalConfigurationResponse defines the response from GetLogStoreMultimodalConfiguration call
+const (
+	MultimodalEnabled  MultimodalStatus = "Enabled"
+	MultimodalDisabled MultimodalStatus = "Disabled"
+)
+
 type GetLogStoreMultimodalConfigurationResponse struct {
-	Status         string `json:"status"`
-	AnonymousWrite string `json:"anonymousWrite,omitempty"`
+	Status         MultimodalStatus `json:"status"`
+	AnonymousWrite MultimodalStatus `json:"anonymousWrite,omitempty"`
 }
 
-// PutLogStoreMultimodalConfigurationResponse defines the response from PutLogStoreMultimodalConfiguration call
-type PutLogStoreMultimodalConfigurationResponse struct {
-	// Standard response with no additional fields
+type PutLogStoreMultimodalConfigurationRequest struct {
+	Status         MultimodalStatus  `json:"status"`
+	AnonymousWrite *MultimodalStatus `json:"anonymousWrite,omitempty"`
 }
 
-// GetLogStoreMultimodalConfiguration gets the multimodal configuration of the logstore
 func (c *Client) GetLogStoreMultimodalConfiguration(project, logstore string) (*GetLogStoreMultimodalConfigurationResponse, error) {
 	h := map[string]string{
 		"x-log-bodyrawsize": "0",
@@ -50,18 +49,8 @@ func (c *Client) GetLogStoreMultimodalConfiguration(project, logstore string) (*
 	return resp, nil
 }
 
-// PutLogStoreMultimodalConfiguration sets the multimodal configuration of the logstore
-func (c *Client) PutLogStoreMultimodalConfiguration(project, logstore, status string, anonymousWrite ...string) error {
-	config := &MultimodalConfiguration{
-		Status: status,
-	}
-
-	// Handle optional anonymousWrite parameter
-	if len(anonymousWrite) > 0 && anonymousWrite[0] != "" {
-		config.AnonymousWrite = anonymousWrite[0]
-	}
-
-	body, err := json.Marshal(config)
+func (c *Client) PutLogStoreMultimodalConfiguration(project, logstore string, req *PutLogStoreMultimodalConfigurationRequest) error {
+	body, err := json.Marshal(req)
 	if err != nil {
 		return NewClientError(err)
 	}

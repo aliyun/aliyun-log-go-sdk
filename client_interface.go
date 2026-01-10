@@ -353,7 +353,7 @@ type ClientInterface interface {
 	// GetLogStoreMultimodalConfiguration gets the multimodal configuration of the logstore
 	GetLogStoreMultimodalConfiguration(project, logstore string) (*GetLogStoreMultimodalConfigurationResponse, error)
 	// PutLogStoreMultimodalConfiguration sets the multimodal configuration of the logstore
-	PutLogStoreMultimodalConfiguration(project, logstore, status string, anonymousWrite ...string) error
+	PutLogStoreMultimodalConfiguration(project, logstore string, req *PutLogStoreMultimodalConfigurationRequest) error
 
 	// #################### Index Operations #####################
 	// CreateIndex ...
