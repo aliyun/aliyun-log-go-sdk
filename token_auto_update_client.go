@@ -2190,3 +2190,23 @@ func (c *TokenAutoUpdateClient) GetObject(project, logstore, objectName string) 
 	}
 	return
 }
+
+func (c *TokenAutoUpdateClient) GetLogStoreMultimodalConfiguration(project, logstore string) (resp *GetLogStoreMultimodalConfigurationResponse, err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		resp, err = c.logClient.GetLogStoreMultimodalConfiguration(project, logstore)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
+func (c *TokenAutoUpdateClient) PutLogStoreMultimodalConfiguration(project, logstore, status string, anonymousWrite ...string) (err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		err = c.logClient.PutLogStoreMultimodalConfiguration(project, logstore, status, anonymousWrite...)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}

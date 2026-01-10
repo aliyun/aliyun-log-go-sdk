@@ -349,6 +349,12 @@ type ClientInterface interface {
 	// GetObject get an object from the specified logstore
 	GetObject(project, logstore, objectName string) (*GetObjectResponse, error)
 
+	// #################### Multimodal Configuration Operations #####################
+	// GetLogStoreMultimodalConfiguration gets the multimodal configuration of the logstore
+	GetLogStoreMultimodalConfiguration(project, logstore string) (*GetLogStoreMultimodalConfigurationResponse, error)
+	// PutLogStoreMultimodalConfiguration sets the multimodal configuration of the logstore
+	PutLogStoreMultimodalConfiguration(project, logstore, status string, anonymousWrite ...string) error
+
 	// #################### Index Operations #####################
 	// CreateIndex ...
 	CreateIndex(project, logstore string, index Index) error
