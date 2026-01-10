@@ -152,7 +152,7 @@ func (s *SignerV4) parseUri(uriWithQuery string) (string, map[string]string, err
 			urlParams[k] = vals[0] // param val should at most one value
 		}
 	}
-	return u.Path, urlParams, nil
+	return u.EscapedPath(), urlParams, nil
 }
 
 func dateTimeISO8601() string {

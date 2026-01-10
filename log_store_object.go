@@ -25,10 +25,6 @@ func (s *LogStore) PutObject(objectName string, content []byte, headers map[stri
 	if _, ok := h["Content-Type"]; !ok {
 		h["Content-Type"] = "application/octet-stream"
 	}
-	// For Object API, we should not compute the content hash
-	// Set x-log-content-sha256 to empty string's hash, same as Python SDK
-	// This is required for SignV4 authentication
-	h["x-log-content-sha256"] = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 
 	// Send request
 	r, err := request(s.project, "PUT", uri, h, content)
