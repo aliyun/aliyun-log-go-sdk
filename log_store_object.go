@@ -3,6 +3,7 @@ package sls
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 )
 
@@ -66,11 +67,11 @@ func (s *LogStore) GetObject(objectName string) (*GetObjectResponse, error) {
 		return nil, readResponseError(err)
 	}
 
-	// Extract headers
 	respHeaders := make(map[string]string)
 	for k, v := range r.Header {
 		if len(v) > 0 {
-			respHeaders[k] = v[0]
+			canonicalKey := http.CanonicalHeaderKey(k)
+			respHeaders[canonicalKey] = v[0]
 		}
 	}
 

@@ -9,7 +9,7 @@ func (resp *GetObjectResponse) GetETag() string {
 	if resp.Headers == nil {
 		return ""
 	}
-	return resp.Headers["ETag"]
+	return resp.Headers["Etag"]
 }
 
 func (resp *GetObjectResponse) GetContentType() string {
