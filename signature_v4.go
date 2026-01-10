@@ -43,6 +43,9 @@ func NewSignerV4(accessKeyID, accessKeySecret, region string) *SignerV4 {
 }
 
 func (s *SignerV4) isSignedHeader(key string) bool {
+	if strings.HasPrefix(strings.ToLower(key), "x-log-meta-") {
+		return false
+	}
 	return strings.HasPrefix(key, "x-log-") ||
 		strings.HasPrefix(key, "x-acs-") ||
 		strings.EqualFold(key, HTTPHeaderHost) ||
@@ -75,12 +78,16 @@ func (s *SignerV4) Sign(method, uri string, headers map[string]string, body []by
 
 	contentLength := len(body)
 	var sha256Payload string
-	if contentLength != 0 {
-		sha256Payload = fmt.Sprintf("%x", sha256.Sum256(body))
+	if existingSha256, ok := headers[HTTPHeaderLogContentSha256]; ok && existingSha256 != "" {
+		sha256Payload = existingSha256
 	} else {
-		sha256Payload = emptyStringSha256
+		if contentLength != 0 {
+			sha256Payload = fmt.Sprintf("%x", sha256.Sum256(body))
+		} else {
+			sha256Payload = emptyStringSha256
+		}
+		headers[HTTPHeaderLogContentSha256] = sha256Payload
 	}
-	headers[HTTPHeaderLogContentSha256] = sha256Payload
 	headers[HTTPHeaderContentLength] = strconv.Itoa(contentLength)
 
 	// Canonical headers

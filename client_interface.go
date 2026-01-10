@@ -343,6 +343,12 @@ type ClientInterface interface {
 	// GetLogsToCompletedV3 query logs with [from, to) time range to completed
 	GetLogsToCompletedV3(project, logstore string, req *GetLogRequest) (*GetLogsV3Response, error)
 
+	// #################### Object Operations #####################
+	// PutObject put an object to the specified logstore
+	PutObject(project, logstore, objectName string, content []byte, headers map[string]string) error
+	// GetObject get an object from the specified logstore
+	GetObject(project, logstore, objectName string) (*GetObjectResponse, error)
+
 	// #################### Index Operations #####################
 	// CreateIndex ...
 	CreateIndex(project, logstore string, index Index) error
