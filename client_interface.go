@@ -345,7 +345,7 @@ type ClientInterface interface {
 
 	// #################### Object Operations #####################
 	// PutObject put an object to the specified logstore
-	PutObject(project, logstore, objectName string, content []byte, headers map[string]string) error
+	PutObject(project, logstore, objectName string, content []byte, headers map[string]string) (*PutObjectResponse, error)
 	// GetObject get an object from the specified logstore
 	GetObject(project, logstore, objectName string) (*GetObjectResponse, error)
 

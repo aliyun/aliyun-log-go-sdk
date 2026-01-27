@@ -27,12 +27,14 @@ func main() {
 	objectName := "test_object_1"
 	content := []byte("Hello, this is test content")
 
-	err := client.PutObject(project, logstore, objectName, content, nil)
+	putResp, err := client.PutObject(project, logstore, objectName, content, nil)
 	if err != nil {
 		fmt.Printf("Put object failed: %v\n", err)
 		return
 	}
 	fmt.Println("Put object success!")
+	fmt.Printf("  Response ETag: %s\n", putResp.GetETag())
+	fmt.Printf("  All Response Headers: %v\n", putResp.Headers)
 
 	// Get the object back
 	resp, err := client.GetObject(project, logstore, objectName)
@@ -54,12 +56,14 @@ func main() {
 		"x-log-meta-version": "1.0",
 	}
 
-	err = client.PutObject(project, logstore, objectName2, content2, headers)
+	putResp2, err := client.PutObject(project, logstore, objectName2, content2, headers)
 	if err != nil {
 		fmt.Printf("Put object with headers failed: %v\n", err)
 		return
 	}
 	fmt.Println("Put object with headers success!")
+	fmt.Printf("  Response ETag: %s\n", putResp2.GetETag())
+	fmt.Printf("  All Response Headers: %v\n", putResp2.Headers)
 
 	// Get the object back
 	resp2, err := client.GetObject(project, logstore, objectName2)
@@ -70,8 +74,8 @@ func main() {
 	fmt.Printf("Get object success! Body: %s\n", string(resp2.Body))
 	fmt.Printf("ETag: %s\n", resp2.GetETag())
 	fmt.Printf("Content-Type: %s\n", resp2.GetContentType())
-	fmt.Printf("x-log-meta-author: %s\n", resp2.Headers["x-log-meta-author"])
-	fmt.Printf("x-log-meta-version: %s\n", resp2.Headers["x-log-meta-version"])
+	fmt.Printf("x-log-meta-author: %s\n", resp2.Headers["X-Log-Meta-Author"])
+	fmt.Printf("x-log-meta-version: %s\n", resp2.Headers["X-Log-Meta-Version"])
 
 	// Example 3: Put an object with Content-MD5
 	fmt.Println("\n=== Example 3: Put an object with Content-MD5 ===")
@@ -87,12 +91,14 @@ func main() {
 		"Content-Type": "application/octet-stream",
 	}
 
-	err = client.PutObject(project, logstore, objectName3, content3, headers3)
+	putResp3, err := client.PutObject(project, logstore, objectName3, content3, headers3)
 	if err != nil {
 		fmt.Printf("Put object with MD5 failed: %v\n", err)
 		return
 	}
 	fmt.Println("Put object with MD5 success!")
+	fmt.Printf("  Response ETag: %s\n", putResp3.GetETag())
+	fmt.Printf("  All Response Headers: %v\n", putResp3.Headers)
 
 	// Get the object back
 	resp3, err := client.GetObject(project, logstore, objectName3)
