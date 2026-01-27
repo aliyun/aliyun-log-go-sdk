@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	emptyStringSha256                = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+	EmptyStringSha256                = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 	signerV4ProductName              = "sls"
 	ISO8601                          = "20060102T150405Z"
 	authorizationV4SigningSaltFigure = "aliyun_v4_request"
@@ -84,7 +84,7 @@ func (s *SignerV4) Sign(method, uri string, headers map[string]string, body []by
 		if contentLength != 0 {
 			sha256Payload = fmt.Sprintf("%x", sha256.Sum256(body))
 		} else {
-			sha256Payload = emptyStringSha256
+			sha256Payload = EmptyStringSha256
 		}
 		headers[HTTPHeaderLogContentSha256] = sha256Payload
 	}
