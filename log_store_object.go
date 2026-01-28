@@ -26,8 +26,8 @@ func (s *LogStore) PutObject(objectName string, content []byte, headers map[stri
 		h["Content-Type"] = "application/octet-stream"
 	}
 
-	option := &RequestOption{
-		ComputeContentHash: false,
+	option := &requestOption{
+		computeContentHash: false,
 	}
 
 	// Send request
