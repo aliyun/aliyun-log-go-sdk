@@ -20,7 +20,7 @@ func main() {
 	client.SetAuthVersion(sls.AuthV4)
 	client.SetRegion("cn-hangzhou")
 
-	fmt.Println("=== Multimodal Configuration Example ===\n")
+	fmt.Println("=== Multimodal Configuration Example ===")
 
 	// Example 1: Get current multimodal configuration
 	fmt.Println("=== Example 1: Get multimodal configuration ===")
