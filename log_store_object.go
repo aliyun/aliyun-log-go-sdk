@@ -8,9 +8,9 @@ import (
 )
 
 // PutObject put an object to the specified logstore
-func (s *LogStore) PutObject(objectName string, content []byte, headers map[string]string) error {
+func (s *LogStore) PutObject(objectName string, content []byte, headers map[string]string) (*PutObjectResponse, error) {
 	if objectName == "" {
-		return fmt.Errorf("object name cannot be empty")
+		return nil, fmt.Errorf("object name cannot be empty")
 	}
 
 	encodedObjectName := objectNameEncode(objectName)
@@ -26,14 +26,29 @@ func (s *LogStore) PutObject(objectName string, content []byte, headers map[stri
 		h["Content-Type"] = "application/octet-stream"
 	}
 
+	option := &requestOption{
+		computeContentHash: false,
+	}
+
 	// Send request
-	r, err := request(s.project, "PUT", uri, h, content)
+	r, err := requestWithOption(s.project, "PUT", uri, h, content, option)
 	if err != nil {
-		return NewClientError(err)
+		return nil, NewClientError(err)
 	}
 	defer r.Body.Close()
 
-	return nil
+	// Extract response headers
+	respHeaders := make(map[string]string)
+	for k, v := range r.Header {
+		if len(v) > 0 {
+			canonicalKey := http.CanonicalHeaderKey(k)
+			respHeaders[canonicalKey] = v[0]
+		}
+	}
+
+	return &PutObjectResponse{
+		Headers: respHeaders,
+	}, nil
 }
 
 // GetObject get an object from the specified logstore

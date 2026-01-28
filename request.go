@@ -15,6 +15,16 @@ import (
 	"golang.org/x/net/context"
 )
 
+type requestOption struct {
+	computeContentHash bool
+}
+
+func defaultRequestOption() *requestOption {
+	return &requestOption{
+		computeContentHash: true,
+	}
+}
+
 // timeout configs
 var (
 	defaultRequestTimeout  = 60 * time.Second
@@ -92,11 +102,20 @@ func retryWriteErrorCheck(ctx context.Context, err error) (bool, error) {
 // mock param only for test, default is []
 func request(project *LogProject, method, uri string, headers map[string]string,
 	body []byte, mock ...interface{}) (*http.Response, error) {
+	return requestWithOption(project, method, uri, headers, body, nil, mock...)
+}
+
+func requestWithOption(project *LogProject, method, uri string, headers map[string]string,
+	body []byte, option *requestOption, mock ...interface{}) (*http.Response, error) {
 
 	var r *http.Response
 	var slsErr error
 	var err error
 	var mockErr *mockErrorRetry
+
+	if option == nil {
+		option = defaultRequestOption()
+	}
 
 	project.init()
 	ctx, cancel := context.WithTimeout(context.Background(), project.retryTimeout)
@@ -108,7 +127,7 @@ func request(project *LogProject, method, uri string, headers map[string]string,
 		err = RetryWithCondition(ctx, backoff.NewExponentialBackOff(), func() (bool, error) {
 			if len(mock) == 0 {
 				//fmt.Println("real request", project, method, uri, headers, body)
-				r, slsErr = realRequest(ctx, project, method, uri, headers, body)
+				r, slsErr = realRequest(ctx, project, method, uri, headers, body, option)
 				//fmt.Println("real request done")
 			} else {
 				r, mockErr = nil, mock[0].(*mockErrorRetry)
@@ -125,7 +144,7 @@ func request(project *LogProject, method, uri string, headers map[string]string,
 	} else {
 		err = RetryWithCondition(ctx, backoff.NewExponentialBackOff(), func() (bool, error) {
 			if len(mock) == 0 {
-				r, slsErr = realRequest(ctx, project, method, uri, headers, body)
+				r, slsErr = realRequest(ctx, project, method, uri, headers, body, option)
 			} else {
 				r, mockErr = nil, mock[0].(*mockErrorRetry)
 				mockErr.RetryCnt--
@@ -149,7 +168,7 @@ func request(project *LogProject, method, uri string, headers map[string]string,
 // request sends a request to alibaba cloud Log Service.
 // @note if error is nil, you must call http.Response.Body.Close() to finalize reader
 func realRequest(ctx context.Context, project *LogProject, method, uri string, headers map[string]string,
-	body []byte) (*http.Response, error) {
+	body []byte, option *requestOption) (*http.Response, error) {
 
 	// The caller should provide 'x-log-bodyrawsize' header
 	if _, ok := headers[HTTPHeaderBodyRawSize]; !ok {
@@ -194,17 +213,21 @@ func realRequest(ctx context.Context, project *LogProject, method, uri string, h
 	for k, v := range project.innerHeaders {
 		headers[k] = v
 	}
-	var signer Signer
-	if project.AuthVersion == AuthV4 {
+	var err error
+	switch project.AuthVersion {
+	case AuthV4:
 		headers[HTTPHeaderLogDate] = dateTimeISO8601()
-		signer = NewSignerV4(accessKeyID, accessKeySecret, project.Region)
-	} else if project.AuthVersion == AuthV0 {
-		signer = NewSignerV0()
-	} else {
+		signer := NewSignerV4(accessKeyID, accessKeySecret, project.Region)
+		err = signer.SignWithOption(method, uri, headers, body, option.computeContentHash)
+	case AuthV0:
+		signer := NewSignerV0()
+		err = signer.Sign(method, uri, headers, body)
+	default:
 		headers[HTTPHeaderDate] = nowRFC1123()
-		signer = NewSignerV1(accessKeyID, accessKeySecret)
+		signer := NewSignerV1(accessKeyID, accessKeySecret)
+		err = signer.Sign(method, uri, headers, body)
 	}
-	if err := signer.Sign(method, uri, headers, body); err != nil {
+	if err != nil {
 		return nil, err
 	}
 

@@ -129,7 +129,7 @@ func (p *LogProject) WithRetryTimeout(timeout time.Duration) *LogProject {
 // @note you should call http.Response.Body.Close() to close body stream
 func (p *LogProject) RawRequest(method, uri string, headers map[string]string, body []byte) (*http.Response, error) {
 	ctx := context.Background()
-	return realRequest(ctx, p, method, uri, headers, body)
+	return realRequest(ctx, p, method, uri, headers, body, defaultRequestOption())
 }
 
 // ListLogStore returns all logstore names of project p.

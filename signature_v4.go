@@ -42,6 +42,13 @@ func NewSignerV4(accessKeyID, accessKeySecret, region string) *SignerV4 {
 	}
 }
 
+func (s *SignerV4) SignWithOption(method, uri string, headers map[string]string, body []byte, computeContentHash bool) error {
+	if !computeContentHash {
+		headers[HTTPHeaderLogContentSha256] = emptyStringSha256
+	}
+	return s.Sign(method, uri, headers, body)
+}
+
 func (s *SignerV4) isSignedHeader(key string) bool {
 	if strings.HasPrefix(strings.ToLower(key), "x-log-meta-") {
 		return false
