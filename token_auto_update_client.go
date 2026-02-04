@@ -1963,6 +1963,8 @@ func (c *TokenAutoUpdateClient) RestartExport(project string, export *Export) (e
 	}
 	return
 }
+
+// Deprecated: use CreateMetricStoreV2 instead.
 func (c *TokenAutoUpdateClient) CreateMetricStore(project string, metricStore *LogStore) (err error) {
 	for i := 0; i < c.maxTryTimes; i++ {
 		err = c.logClient.CreateMetricStore(project, metricStore)
@@ -1972,6 +1974,8 @@ func (c *TokenAutoUpdateClient) CreateMetricStore(project string, metricStore *L
 	}
 	return
 }
+
+// Deprecated: use UpdateMetricStoreV2 instead.
 func (c *TokenAutoUpdateClient) UpdateMetricStore(project string, metricStore *LogStore) (err error) {
 	for i := 0; i < c.maxTryTimes; i++ {
 		err = c.logClient.UpdateMetricStore(project, metricStore)
@@ -1981,6 +1985,8 @@ func (c *TokenAutoUpdateClient) UpdateMetricStore(project string, metricStore *L
 	}
 	return
 }
+
+// Deprecated: use DeleteMetricStoreV2 instead.
 func (c *TokenAutoUpdateClient) DeleteMetricStore(project, name string) (err error) {
 	for i := 0; i < c.maxTryTimes; i++ {
 		err = c.logClient.DeleteMetricStore(project, name)
@@ -1990,6 +1996,8 @@ func (c *TokenAutoUpdateClient) DeleteMetricStore(project, name string) (err err
 	}
 	return
 }
+
+// Deprecated: use GetMetricStoreV2 instead.
 func (c *TokenAutoUpdateClient) GetMetricStore(project, name string) (metricStore *LogStore, err error) {
 	for i := 0; i < c.maxTryTimes; i++ {
 		metricStore, err = c.logClient.GetMetricStore(project, name)
@@ -2204,6 +2212,43 @@ func (c *TokenAutoUpdateClient) GetLogStoreMultimodalConfiguration(project, logs
 func (c *TokenAutoUpdateClient) PutLogStoreMultimodalConfiguration(project, logstore string, req *PutLogStoreMultimodalConfigurationRequest) (err error) {
 	for i := 0; i < c.maxTryTimes; i++ {
 		err = c.logClient.PutLogStoreMultimodalConfiguration(project, logstore, req)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
+func (c *TokenAutoUpdateClient) CreateMetricStoreV2(project string, metricStore *MetricStore) (err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		err = c.logClient.CreateMetricStoreV2(project, metricStore)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+func (c *TokenAutoUpdateClient) UpdateMetricStoreV2(project string, metricStore *MetricStore) (err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		err = c.logClient.UpdateMetricStoreV2(project, metricStore)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+func (c *TokenAutoUpdateClient) DeleteMetricStoreV2(project, name string) (err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		err = c.logClient.DeleteMetricStoreV2(project, name)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+func (c *TokenAutoUpdateClient) GetMetricStoreV2(project, name string) (metricStore *MetricStore, err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		metricStore, err = c.logClient.GetMetricStoreV2(project, name)
 		if !c.processError(err) {
 			return
 		}

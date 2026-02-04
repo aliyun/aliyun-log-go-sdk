@@ -3,6 +3,8 @@ package sls
 import "time"
 
 // CreateMetricStore .
+//
+// Deprecated: use CreateMetricStoreV2 instead.
 func (c *Client) CreateMetricStore(project string, metricStore *LogStore) error {
 	metricStore.TelemetryType = "Metrics"
 	err := c.CreateLogStoreV2(project, metricStore)
@@ -35,6 +37,8 @@ func (c *Client) CreateMetricStore(project string, metricStore *LogStore) error 
 }
 
 // UpdateMetricStore .
+//
+// Deprecated: use UpdateMetricStoreV2 instead.
 func (c *Client) UpdateMetricStore(project string, metricStore *LogStore) error {
 	metricStore.TelemetryType = "Metrics"
 	err := c.UpdateLogStoreV2(project, metricStore)
@@ -45,13 +49,41 @@ func (c *Client) UpdateMetricStore(project string, metricStore *LogStore) error 
 }
 
 // DeleteMetricStore .
+//
+// Deprecated: use DeleteMetricStoreV2 instead.
 func (c *Client) DeleteMetricStore(project, name string) error {
 	return c.DeleteLogStore(project, name)
 }
 
 // GetMetricStore .
+//
+// Deprecated: use GetMetricStoreV2 instead.
 func (c *Client) GetMetricStore(project, name string) (*LogStore, error) {
 	return c.GetLogStore(project, name)
+}
+
+// CreateMetricStoreV2 creates a new metric store in SLS.
+func (c *Client) CreateMetricStoreV2(project string, metricStore *MetricStore) error {
+	proj := convert(c, project)
+	return proj.CreateMetricStoreV2(metricStore)
+}
+
+// UpdateMetricStoreV2 updates a metric store.
+func (c *Client) UpdateMetricStoreV2(project string, metricStore *MetricStore) error {
+	proj := convert(c, project)
+	return proj.UpdateMetricStoreV2(metricStore)
+}
+
+// DeleteMetricStoreV2 deletes a metric store.
+func (c *Client) DeleteMetricStoreV2(project, name string) error {
+	proj := convert(c, project)
+	return proj.DeleteMetricStoreV2(name)
+}
+
+// GetMetricStoreV2 returns a metric store.
+func (c *Client) GetMetricStoreV2(project, name string) (*MetricStore, error) {
+	proj := convert(c, project)
+	return proj.GetMetricStoreV2(name)
 }
 
 // GetMetricStoreMeteringMode get the metering mode of metric store, eg. ChargeByFunction / ChargeByDataIngest

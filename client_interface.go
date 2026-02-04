@@ -153,13 +153,30 @@ type ClientInterface interface {
 
 	// #################### MetricStore Operations #####################
 	// CreateMetricStore creates a new metric store in SLS.
+	//
+	// Deprecated: use CreateMetricStoreV2 instead.
 	CreateMetricStore(project string, metricStore *LogStore) error
 	// UpdateMetricStore updates a metric store.
+	//
+	// Deprecated: use UpdateMetricStoreV2 instead.
 	UpdateMetricStore(project string, metricStore *LogStore) error
 	// DeleteMetricStore deletes a metric store.
+	//
+	// Deprecated: use DeleteMetricStoreV2 instead.
 	DeleteMetricStore(project, name string) error
 	// GetMetricStore return a metric store.
+	//
+	// Deprecated: use GetMetricStoreV2 instead.
 	GetMetricStore(project, name string) (*LogStore, error)
+	// CreateMetricStoreV2 creates a new metric store in SLS.
+	CreateMetricStoreV2(project string, metricStore *MetricStore) error
+	// UpdateMetricStoreV2 updates a metric store.
+	UpdateMetricStoreV2(project string, metricStore *MetricStore) error
+	// DeleteMetricStoreV2 deletes a metric store.
+	DeleteMetricStoreV2(project, name string) error
+	// GetMetricStoreV2 return a metric store.
+	GetMetricStoreV2(project, name string) (*MetricStore, error)
+
 	// GetMetricStoreMeteringMode get the metering mode of metric store, eg. ChargeByFunction / ChargeByDataIngest
 	GetMetricStoreMeteringMode(project string, metricStore string) (*GetMeteringModeResponse, error)
 	// UpdateMetricStoreMeteringMode update the metering mode of metric store, eg. ChargeByFunction / ChargeByDataIngest

@@ -1359,3 +1359,103 @@ func (p *LogProject) parseEndpoint() {
 		p.baseURL = fmt.Sprintf("%s%s.%s", scheme, p.Name, host)
 	}
 }
+
+// CreateMetricStoreV2 creates a new metric store in SLS.
+func (p *LogProject) CreateMetricStoreV2(metricStore *MetricStore) error {
+	body, err := json.Marshal(metricStore)
+	if err != nil {
+		return NewClientError(err)
+	}
+
+	h := map[string]string{
+		"x-log-bodyrawsize": fmt.Sprintf("%v", len(body)),
+		"Content-Type":      "application/json",
+	}
+
+	r, err := request(p, "POST", "/metricstores", h, body)
+	if err != nil {
+		return NewClientError(err)
+	}
+	defer r.Body.Close()
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return readResponseError(err)
+	}
+	if r.StatusCode != http.StatusOK {
+		return httpStatusNotOkError(buf, r.Header, r.StatusCode)
+	}
+	return nil
+}
+
+// UpdateMetricStoreV2 updates a metric store according by name.
+func (p *LogProject) UpdateMetricStoreV2(metricStore *MetricStore) (err error) {
+	body, err := json.Marshal(metricStore)
+	if err != nil {
+		return NewClientError(err)
+	}
+
+	h := map[string]string{
+		"x-log-bodyrawsize": fmt.Sprintf("%v", len(body)),
+		"Content-Type":      "application/json",
+	}
+	r, err := request(p, "PUT", "/metricstores/"+metricStore.Name, h, body)
+	if err != nil {
+		return NewClientError(err)
+	}
+	defer r.Body.Close()
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return readResponseError(err)
+	}
+	if r.StatusCode != http.StatusOK {
+		return httpStatusNotOkError(buf, r.Header, r.StatusCode)
+	}
+	return nil
+}
+
+// DeleteMetricStoreV2 deletes a metric store according by name.
+func (p *LogProject) DeleteMetricStoreV2(name string) (err error) {
+	h := map[string]string{
+		"x-log-bodyrawsize": "0",
+	}
+
+	r, err := request(p, "DELETE", "/metricstores/"+name, h, nil)
+	if err != nil {
+		return NewClientError(err)
+	}
+	defer r.Body.Close()
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return readResponseError(err)
+	}
+	if r.StatusCode != http.StatusOK {
+		return httpStatusNotOkError(buf, r.Header, r.StatusCode)
+	}
+	return nil
+}
+
+// GetMetricStoreV2 returns a metric store by name.
+func (p *LogProject) GetMetricStoreV2(name string) (*MetricStore, error) {
+	h := map[string]string{
+		"x-log-bodyrawsize": "0",
+	}
+
+	r, err := request(p, "GET", "/metricstores/"+name, h, nil)
+	if err != nil {
+		return nil, NewClientError(err)
+	}
+	defer r.Body.Close()
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, readResponseError(err)
+	}
+	if r.StatusCode != http.StatusOK {
+		return nil, httpStatusNotOkError(buf, r.Header, r.StatusCode)
+	}
+
+	store := &MetricStore{}
+	if err := json.Unmarshal(buf, store); err != nil {
+		return nil, invalidJsonRespError(string(buf), r.Header, r.StatusCode)
+	}
+	return store, nil
+}
