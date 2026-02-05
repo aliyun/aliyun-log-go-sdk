@@ -244,7 +244,7 @@ func (s *StoreViewTestSuite) createStores() {
 			LogReduce: false,
 		})
 		s.Require().NoError(err)
-		err = s.client.CreateMetricStore(s.project, &LogStore{
+		err = s.client.CreateMetricStoreV2(s.project, &MetricStore{
 			Name:       fmt.Sprintf("metricstore-%d", i),
 			TTL:        7,
 			ShardCount: 2,

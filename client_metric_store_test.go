@@ -2,10 +2,11 @@ package sls
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/suite"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/suite"
 )
 
 func TestMetricStore(t *testing.T) {
@@ -49,40 +50,62 @@ func (m *MetricStoreTestSuite) TearDownSuite() {
 }
 
 func (m *MetricStoreTestSuite) TestClient_CreateAndDeleteMetricStore() {
-	metricStore := &LogStore{
+	metricStore := &MetricStore{
 		Name:       m.metricStoreName,
 		TTL:        m.ttl,
 		ShardCount: m.shardCnt,
 	}
-	ce := m.client.CreateMetricStore(m.projectName, metricStore)
+	ce := m.client.CreateMetricStoreV2(m.projectName, metricStore)
 	m.Require().Nil(ce)
-	de := m.client.DeleteMetricStore(m.projectName, m.metricStoreName)
+	de := m.client.DeleteMetricStoreV2(m.projectName, m.metricStoreName)
 	m.Require().Nil(de)
 }
 
 func (m *MetricStoreTestSuite) TestClient_UpdateAndGetMetricStore() {
-	metricStore1 := &LogStore{
+	metricStore1 := &MetricStore{
 		Name:       m.metricStoreName,
 		TTL:        m.ttl,
 		ShardCount: m.shardCnt,
 	}
-	ce := m.client.CreateMetricStore(m.projectName, metricStore1)
+	ce := m.client.CreateMetricStoreV2(m.projectName, metricStore1)
 	m.Require().Nil(ce)
-	metricStore, ge := m.client.GetMetricStore(m.projectName, m.metricStoreName)
+	metricStore, ge := m.client.GetMetricStoreV2(m.projectName, m.metricStoreName)
 	m.Require().Nil(ge)
 	m.Require().Equal(m.metricStoreName, metricStore.Name)
 	m.Require().Equal(m.ttl, metricStore.TTL)
 	m.Require().Equal(m.shardCnt, metricStore.ShardCount)
-	m.Require().Equal("Metrics", metricStore.TelemetryType)
 
 	metricStore1.TTL = 15
-	ue := m.client.UpdateMetricStore(m.projectName, metricStore1)
+	ue := m.client.UpdateMetricStoreV2(m.projectName, metricStore1)
 	m.Require().Nil(ue)
-	metricStore2, ge2 := m.client.GetMetricStore(m.projectName, m.metricStoreName)
+	metricStore2, ge2 := m.client.GetMetricStoreV2(m.projectName, m.metricStoreName)
 	m.Require().Nil(ge2)
 	m.Require().Equal(m.metricStoreName, metricStore2.Name)
 	m.Require().Equal(15, metricStore2.TTL)
-	m.Require().Equal("Metrics", metricStore.TelemetryType)
-	de := m.client.DeleteMetricStore(m.projectName, m.metricStoreName)
+	de := m.client.DeleteMetricStoreV2(m.projectName, m.metricStoreName)
 	m.Require().Nil(de)
+}
+
+func TestClient_MetricStoreMeteringMode(t *testing.T) {
+	client := CreateNormalInterface(os.Getenv("LOG_TEST_ENDPOINT"), os.Getenv("LOG_TEST_ACCESS_KEY_ID"), os.Getenv("LOG_TEST_ACCESS_KEY_SECRET"), "")
+	projectName := os.Getenv("LOG_TEST_PROJECT_NAME")
+	metricStoreName := os.Getenv("LOG_TEST_METRIC_STORE_NAME")
+	// 获取初始计量模式
+	res, err := client.GetMetricStoreMeteringMode(projectName, metricStoreName)
+	if err != nil {
+		t.Fatalf("获取计量模式失败: %v", err)
+	}
+	initialMode := res.MeteringMode
+	fmt.Printf("Initial metering mode: %s\n", initialMode)
+
+	// 切换到 ChargeByDataIngest
+	err = client.UpdateMetricStoreMeteringMode(projectName, metricStoreName, CHARGE_BY_FUNCTION)
+	if err != nil {
+		t.Fatalf("更新计量模式失败: %v", err)
+	}
+	res, err = client.GetMetricStoreMeteringMode(projectName, metricStoreName)
+	if err != nil {
+		t.Fatalf("获取计量模式失败: %v", err)
+	}
+	fmt.Printf("Changed to: %s\n", res.MeteringMode)
 }
