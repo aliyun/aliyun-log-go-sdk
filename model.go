@@ -23,8 +23,9 @@ type GetLogRequest struct {
 	FromNsPart    int32  `json:"fromNs"`
 	ToNsPart      int32  `json:"toNs"`
 	NeedHighlight bool   `json:"highlight"`
-	IsAccurate    bool   `json:"accurate"`
-	CompressType  int    `json:"-"` // Compress_ZSTD or Compress_LZ4, default is Compress_LZ4
+	// breaking change: change type from bool to *bool from version v0.1.117, check [BREAKING_CHANGES.md](https://github.com/aliyun/aliyun-log-go-sdk/blob/master/BREAKING_CHANGES.md) for migration guide
+	IsAccurate   *bool `json:"accurate,omitempty"`
+	CompressType int   `json:"-"` // Compress_ZSTD or Compress_LZ4, default is Compress_LZ4
 }
 
 func (glr *GetLogRequest) ToURLParams() url.Values {
@@ -41,7 +42,9 @@ func (glr *GetLogRequest) ToURLParams() url.Values {
 	urlVal.Add("fromNs", strconv.Itoa(int(glr.FromNsPart)))
 	urlVal.Add("toNs", strconv.Itoa(int(glr.ToNsPart)))
 	urlVal.Add("highlight", strconv.FormatBool(glr.NeedHighlight))
-	urlVal.Add("accurate", strconv.FormatBool(glr.IsAccurate))
+	if glr.IsAccurate != nil {
+		urlVal.Add("accurate", strconv.FormatBool(*glr.IsAccurate))
+	}
 	return urlVal
 }
 
