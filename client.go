@@ -428,6 +428,56 @@ func (c *Client) Close() error {
 	return nil
 }
 
+// ExecuteQuery executes a query on the specified project.
+func (c *Client) ExecuteQuery(project string, req *ExecuteQueryRequest) (*ExecuteQueryResponse, error) {
+	body, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	h := map[string]string{
+		"x-log-bodyrawsize": fmt.Sprintf("%v", len(body)),
+		"Content-Type":      "application/json",
+		"Accept-Encoding":   "lz4",
+	}
+
+	proj := convert(c, project)
+	uri := "/execute-query"
+	r, err := request(proj, "POST", uri, h, body)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Body.Close()
+
+	respBody, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, readResponseError(err)
+	}
+	if r.StatusCode != http.StatusOK {
+		return nil, httpStatusNotOkError(respBody, r.Header, r.StatusCode)
+	}
+
+	if _, ok := r.Header[BodyRawSize]; ok {
+		if len(r.Header[BodyRawSize]) > 0 {
+			bodyRawSize, err := strconv.ParseInt(r.Header[BodyRawSize][0], 10, 64)
+			if err != nil {
+				return nil, NewBadResponseError(string(respBody), r.Header, r.StatusCode)
+			}
+			out, err := decompressResponse(int(bodyRawSize), respBody, r)
+			if err != nil {
+				return nil, err
+			}
+			respBody = out
+		}
+	}
+
+	var result ExecuteQueryResponse
+	if err = json.Unmarshal(respBody, &result); err != nil {
+		return nil, NewBadResponseError(string(respBody), r.Header, r.StatusCode)
+	}
+	return &result, nil
+}
+
 func (c *Client) setSignV4IfInAcdr(endpoint string) {
 	region, err := util.ParseRegion(endpoint)
 	if err == nil && strings.Contains(region, "-acdr-ut-") {

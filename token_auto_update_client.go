@@ -2255,3 +2255,13 @@ func (c *TokenAutoUpdateClient) GetMetricStoreV2(project, name string) (metricSt
 	}
 	return
 }
+
+func (c *TokenAutoUpdateClient) ExecuteQuery(project string, req *ExecuteQueryRequest) (resp *ExecuteQueryResponse, err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		resp, err = c.logClient.ExecuteQuery(project, req)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}

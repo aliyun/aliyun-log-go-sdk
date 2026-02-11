@@ -412,6 +412,23 @@ type ListProjectRequest struct {
 	Description string `json:"description,omitempty"` // use it to filter projects by description, support fuzzy search
 }
 
+// ExecuteQueryRequest defines request for ExecuteQuery
+type ExecuteQueryRequest struct {
+	Query string `json:"query"` // query statement
+	Type  string `json:"type"`  // query type, supports "SQL"
+}
+
+// ExecuteQueryResponseMeta defines the meta field in ExecuteQueryResponse
+type ExecuteQueryResponseMeta struct {
+	AffectedRows       int64 `json:"affectedRows"`
+	ElapsedMillisecond int64 `json:"elapsedMillisecond"`
+}
+
+// ExecuteQueryResponse defines response from ExecuteQuery call
+type ExecuteQueryResponse struct {
+	Meta ExecuteQueryResponseMeta `json:"meta"`
+}
+
 // If cursor is unknown, returns empty string
 // If pullLogs with non-empty query or consumer with non-empty query, returns empty string
 func (l *LogGroup) GetCursor() string {
