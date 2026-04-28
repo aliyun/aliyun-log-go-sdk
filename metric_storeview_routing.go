@@ -3,12 +3,13 @@ package sls
 import (
 	"encoding/json"
 	"errors"
-	"github.com/prometheus/prometheus/model/labels"
-	"github.com/prometheus/prometheus/promql/parser"
 	"regexp"
 	"regexp/syntax"
 	"sort"
 	"strings"
+
+	"github.com/prometheus/prometheus/model/labels"
+	"github.com/prometheus/prometheus/promql/parser"
 )
 
 var (
@@ -396,7 +397,7 @@ type MetricRoutingResult struct {
 }
 
 func (s *StoreViewRoutingChecker) CheckPromQlQuery(query string, sourceProjects []ProjectStore) ([]MetricRoutingResult, error) {
-	expr, err := parser.ParseExpr(query)
+	expr, err := parser.NewParser(parser.Options{}).ParseExpr(query)
 	if err != nil {
 		return nil, err
 	}
