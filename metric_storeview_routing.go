@@ -381,6 +381,7 @@ func generateStoreviewRoutingStrategyOnConfigs(configsBuf []byte, newHashVal uin
 
 type StoreViewRoutingChecker struct {
 	strategyItem *StoreViewRoutingStategiesItem
+	parser       parser.Parser
 }
 
 func NewStoreViewRoutingChecker(routingConf []byte) (*StoreViewRoutingChecker, error) {
@@ -388,7 +389,8 @@ func NewStoreViewRoutingChecker(routingConf []byte) (*StoreViewRoutingChecker, e
 	if err != nil {
 		return nil, err
 	}
-	return &StoreViewRoutingChecker{strategyItem: strategyItem}, nil
+	par := parser.NewParser(parser.Options{})
+	return &StoreViewRoutingChecker{strategyItem: strategyItem, parser: par}, nil
 }
 
 type MetricRoutingResult struct {
@@ -397,7 +399,7 @@ type MetricRoutingResult struct {
 }
 
 func (s *StoreViewRoutingChecker) CheckPromQlQuery(query string, sourceProjects []ProjectStore) ([]MetricRoutingResult, error) {
-	expr, err := parser.NewParser(parser.Options{}).ParseExpr(query)
+	expr, err := s.parser.ParseExpr(query)
 	if err != nil {
 		return nil, err
 	}
