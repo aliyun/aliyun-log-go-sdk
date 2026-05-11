@@ -112,6 +112,9 @@ type ClientInterface interface {
 	// ref https://www.alibabacloud.com/help/doc-detail/74955.htm
 	ListProjectV2(offset, size int) (projects []LogProject, count, total int, err error)
 	ListProjectV3(req *ListProjectRequest) (projects []LogProject, count, total int, err error)
+	// ListAllProjects list all projects with type=all parameter
+	// ref https://help.aliyun.com/document_detail/xxxxx.htm
+	ListAllProjects(req *ListAllProjectsRequest) (resp *ListAllProjectsResponse, err error)
 	// CheckProjectExist check project exist or not
 	CheckProjectExist(name string) (bool, error)
 	// DeleteProject ...
