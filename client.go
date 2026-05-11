@@ -385,6 +385,56 @@ func (c *Client) ListProjectV3(req *ListProjectRequest) (projects []LogProject, 
 	return body.Projects, body.Count, body.Total, err
 }
 
+// ListAllProjects list all projects with type=all parameter
+// ref https://help.aliyun.com/document_detail/xxxxx.htm
+func (c *Client) ListAllProjects(req *ListAllProjectsRequest) (resp *ListAllProjectsResponse, err error) {
+	h := map[string]string{
+		"x-log-bodyrawsize": "0",
+	}
+
+	urlVal := url.Values{}
+	urlVal.Add("type", "all")
+	if req.Offset > 0 {
+		urlVal.Add("offset", strconv.Itoa(req.Offset))
+	}
+	if req.Size > 0 {
+		urlVal.Add("size", strconv.Itoa(req.Size))
+	}
+	if req.RegionId != "" {
+		urlVal.Add("regionId", req.RegionId)
+	}
+	if req.ProjectName != "" {
+		urlVal.Add("projectName", req.ProjectName)
+	}
+	if req.ResourceGroupId != "" {
+		urlVal.Add("resourceGroupId", req.ResourceGroupId)
+	}
+	if req.SearchText != "" {
+		urlVal.Add("searchText", req.SearchText)
+	}
+
+	uri := fmt.Sprintf("/?%s", urlVal.Encode())
+	proj := convert(c, "")
+
+	r, err := request(proj, "GET", uri, h, nil)
+	if err != nil {
+		return nil, NewClientError(err)
+	}
+
+	defer r.Body.Close()
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, readResponseError(err)
+	}
+	if r.StatusCode != http.StatusOK {
+		return nil, httpStatusNotOkError(buf, r.Header, r.StatusCode)
+	}
+
+	body := &ListAllProjectsResponse{}
+	err = json.Unmarshal(buf, body)
+	return body, err
+}
+
 // CheckProjectExist check project exist or not
 func (c *Client) CheckProjectExist(name string) (bool, error) {
 	h := map[string]string{

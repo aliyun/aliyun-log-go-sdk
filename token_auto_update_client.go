@@ -2179,6 +2179,16 @@ func (c *TokenAutoUpdateClient) ListProjectV3(req *ListProjectRequest) (projects
 	return
 }
 
+func (c *TokenAutoUpdateClient) ListAllProjects(req *ListAllProjectsRequest) (resp *ListAllProjectsResponse, err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		resp, err = c.logClient.ListAllProjects(req)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
 func (c *TokenAutoUpdateClient) PutObject(project, logstore, objectName string, content []byte, headers map[string]string) (resp *PutObjectResponse, err error) {
 	for i := 0; i < c.maxTryTimes; i++ {
 		resp, err = c.logClient.PutObject(project, logstore, objectName, content, headers)
