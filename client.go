@@ -292,6 +292,31 @@ func (c *Client) GetProject(name string) (*LogProject, error) {
 	return proj, err
 }
 
+// GetProjectCrossRegion gets project information with cross-region lookup enabled.
+// This API is available only in some regions.
+func (c *Client) GetProjectCrossRegion(name string) (*LogProject, error) {
+	h := map[string]string{
+		"x-log-bodyrawsize": "0",
+	}
+
+	uri := "/?crossRegion=true"
+	proj := convert(c, name)
+	resp, err := request(proj, "GET", uri, h, nil)
+	if err != nil {
+		return nil, NewClientError(err)
+	}
+	defer resp.Body.Close()
+	buf, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, readResponseError(err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, httpStatusNotOkError(buf, resp.Header, resp.StatusCode)
+	}
+	err = json.Unmarshal(buf, proj)
+	return proj, err
+}
+
 // ListProject list all projects in specific region
 // the region is related with the client's endpoint
 func (c *Client) ListProject() (projectNames []string, err error) {

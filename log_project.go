@@ -46,6 +46,9 @@ type LogProject struct {
 	LastModifyTime     string `json:"lastModifyTime"`               // unix time seconds, eg 1524539357
 	DataRedundancyType string `json:"dataRedundancyType,omitempty"` // data redundancy type, valid values: ['LRS', 'ZRS']
 	Location           string `json:"location,omitempty"`           // location, eg. cn-beijing-b
+	InternetEndpoint   string `json:"internetEndpoint,omitempty"`   // public endpoint
+	InternalEndpoint   string `json:"internalEndpoint,omitempty"`   // internal endpoint
+	ShareEndpoint      string `json:"shareEndpoint,omitempty"`      // share endpoint
 
 	Endpoint           string          // Deprecated: will be made private in the next version
 	AccessKeyID        string          // Deprecated: will be made private in the next version
