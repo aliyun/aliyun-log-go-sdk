@@ -102,6 +102,8 @@ type ClientInterface interface {
 	// CreateProject create a new loghub project, with dataRedundancyType option.
 	CreateProjectV2(name, description, dataRedundancyType string) (*LogProject, error)
 	GetProject(name string) (*LogProject, error)
+	// GetProjectCrossRegion is available only in some regions.
+	GetProjectCrossRegion(name string) (*LogProject, error)
 	// UpdateProject create a new loghub project.
 	UpdateProject(name, description string) (*LogProject, error)
 	// ListProject list all projects in specific region

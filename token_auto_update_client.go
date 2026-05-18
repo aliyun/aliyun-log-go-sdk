@@ -211,6 +211,18 @@ func (c *TokenAutoUpdateClient) GetProject(name string) (prj *LogProject, err er
 	return
 }
 
+// GetProjectCrossRegion gets project information with cross-region lookup enabled.
+// This API is available only in some regions.
+func (c *TokenAutoUpdateClient) GetProjectCrossRegion(name string) (prj *LogProject, err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		prj, err = c.logClient.GetProjectCrossRegion(name)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
 func (c *TokenAutoUpdateClient) ListProject() (projectNames []string, err error) {
 	for i := 0; i < c.maxTryTimes; i++ {
 		projectNames, err = c.logClient.ListProject()
