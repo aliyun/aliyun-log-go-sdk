@@ -1,3 +1,5 @@
+[中文版 README](https://github.com/aliyun/aliyun-log-go-sdk/blob/master/README.md)
+
 This is a Golang SDK for Alibaba Cloud [Log Service](https://sls.console.aliyun.com/).
 
 API Reference :
