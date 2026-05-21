@@ -28,6 +28,9 @@ jobs:
     - name: Unit test (no network)
       run: go test -v ./...
 
+    - name: E2E build check (compile only, no run)
+      run: go test -tags=e2e -run=^$ ./...
+
   e2e-test:
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'
