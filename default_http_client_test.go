@@ -60,15 +60,17 @@ func TestProjectHttpClient(t *testing.T) {
 	}
 
 	{
-		// with proxy
+		// proxy IP — NewLogProject does not do proxy detection, so it
+		// returns the singleton defaultHttpClient like any other endpoint.
 		p, err := NewLogProject("test-project", "127.0.0.1", "", "")
 		assert.NoError(t, err)
-		assert.NotEqual(t, p.httpClient, defaultHttpClient) // changed
+		assert.Equal(t, p.httpClient, defaultHttpClient)
 		transport := p.httpClient.Transport.(*http.Transport)
 		assert.Equal(t, p.httpClient.Timeout, defaultRequestTimeout)
 		assert.Equal(t, transport.IdleConnTimeout, defaultHTTPIdleTimeout)
 		assert.NotNil(t, transport.Proxy)
 		p = p.WithRequestTimeout(time.Second * 19)
+		assert.NotEqual(t, p.httpClient, defaultHttpClient) // WithRequestTimeout creates a new client
 		assert.Equal(t, p.httpClient.Timeout, time.Second*19)
 	}
 }

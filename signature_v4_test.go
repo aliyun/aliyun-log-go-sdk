@@ -148,7 +148,7 @@ func (s *SignerV4Suite) TestSignV1Case1() {
 	mockAKID := "mockAccessKeyID"
 	mockAKSec := "mockAccessKeySecret"
 	expSign := "Rwm6cTKzoti4HWoe+GKcb6Kv07E="
-	expAuth := fmt.Sprintf("SLS %s:%s", mockAKID, expSign)
+	expAuth := fmt.Sprintf("LOG %s:%s", mockAKID, expSign)
 
 	v1 := SignerV1{accessKeyID: mockAKID, accessKeySecret: mockAKSec}
 	err := v1.Sign("GET", "/logstores", headers, nil)
@@ -177,7 +177,7 @@ func (s *SignerV4Suite) TestSignV1Case2() {
 	mockAKID := "mockAccessKeyID"
 	mockAKSec := "mockAccessKeySecret"
 	expSign := "87xQWqFaOSewqRIma8kPjGYlXHc="
-	expAuth := fmt.Sprintf("SLS %s:%s", mockAKID, expSign)
+	expAuth := fmt.Sprintf("LOG %s:%s", mockAKID, expSign)
 	v1 := SignerV1{
 		accessKeyID:     mockAKID,
 		accessKeySecret: mockAKSec,
