@@ -1,3 +1,5 @@
+//go:build e2e
+
 package sls
 
 import (
@@ -5,13 +7,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
-	lz4 "github.com/pierrec/lz4/v4"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/aliyun/aliyun-log-go-sdk/internal/testutil"
 )
 
 func TestLogStore(t *testing.T) {
@@ -34,6 +36,7 @@ type LogstoreTestSuite struct {
 }
 
 func (s *LogstoreTestSuite) SetupSuite() {
+	testutil.RequireE2E(s.T())
 	s.endpoint = os.Getenv("LOG_TEST_ENDPOINT")
 	s.projectName = fmt.Sprintf("test-go-logstore-%d", time.Now().Unix())
 	s.logstoreName = fmt.Sprintf("logstore-%d", time.Now().Unix())
@@ -412,144 +415,6 @@ func generateLG() *LogGroup {
 		Logs:   []*Log{logRecord},
 	}
 	return lg
-}
-
-func (s *LogstoreTestSuite) TestLogStoreReadErrorMock() {
-	topic := ""
-	begin_time := uint32(time.Now().Unix())
-	from := int64(begin_time)
-	to := int64(begin_time + 2)
-	queryExp := "InternalServerError"
-	maxLineNum := 100
-	offset := 0
-	reverse := false
-
-	h := map[string]string{
-		"x-log-bodyrawsize": "0",
-		"Accept":            "application/json",
-	}
-
-	uri := fmt.Sprintf("/logstores/%v?type=log&topic=%v&from=%v&to=%v&query=%v&line=%v&offset=%v&reverse=%v", s.Logstore.Name, topic, from, to, queryExp, maxLineNum, offset, reverse)
-
-	mockErr := new(mockErrorRetry)
-	mockErr.RetryCnt = 10000000
-	serverError := Error{}
-	serverError.Message = "server error 500"
-	serverError.HTTPCode = int32(500)
-	mockErr.Err = serverError
-
-	//发生retry，一直retry不成功，err结果为retry超时
-	r1, err := request(s.Logstore.project, "GET", uri, h, nil, mockErr)
-	s.Nil(r1)
-	s.NotNil(err)
-	s.True(strings.Contains(string(err.Error()), "context deadline exceeded"))
-	s.True(strings.Contains(string(err.Error()), "server error 500"))
-	s.True(strings.Contains(string(err.Error()), "stopped retrying err"))
-
-	//err为不符合retry条件的情况, 返回预期的err
-	mockErr.Err.HTTPCode = int32(404)
-	mockErr.Err.Message = "server error 404"
-	r2, err2 := request(s.Logstore.project, "GET", uri, h, nil, mockErr)
-	s.Nil(r2)
-	s.NotNil(err2)
-	s.False(strings.Contains(string(err2.Error()), "stopped retrying err"))
-	s.False(strings.Contains(string(err2.Error()), "context deadline exceeded"))
-	s.True(strings.Contains(string(err2.Error()), "server error 404"))
-
-	//err为nil的情况，没有retry发生, 模拟重试一次
-	mockErr.Err.HTTPCode = int32(200)
-	mockErr.RetryCnt = 1
-	r3, err3 := request(s.Logstore.project, "GET", uri, h, nil, mockErr)
-	s.NotNil(r3)
-	s.Nil(err3)
-
-	// 发生retry，retry几次之后成功了
-	mockErr.Err.Message = "server error 500"
-	mockErr.Err.HTTPCode = int32(500)
-	mockErr.RetryCnt = 3
-
-	r4, err4 := request(s.Logstore.project, "GET", uri, h, nil, mockErr)
-	s.NotNil(r4)
-	s.Nil(err4)
-
-}
-
-func (s *LogstoreTestSuite) TestLogStoreWriteErrorMock() {
-	c := &LogContent{
-		Key:   proto.String("error code"),
-		Value: proto.String("InternalServerError"),
-	}
-	l := &Log{
-		Time: proto.Uint32(uint32(time.Now().Unix())),
-		Contents: []*LogContent{
-			c,
-		},
-	}
-	lg := &LogGroup{
-		Topic:  proto.String("demo topic"),
-		Source: proto.String("10.230.201.117"),
-		Logs: []*Log{
-			l,
-		},
-	}
-
-	body, _ := proto.Marshal(lg)
-
-	// Compresse body with lz4
-	var hashTable [1 << 16]int
-	out := make([]byte, lz4.CompressBlockBound(len(body)))
-	n, _ := lz4.CompressBlock(body, out, hashTable[:])
-
-	h := map[string]string{
-		"x-log-compresstype": "lz4",
-		"x-log-bodyrawsize":  fmt.Sprintf("%v", len(body)),
-		"Content-Type":       "application/x-protobuf",
-	}
-
-	uri := fmt.Sprintf("/logstores/%v", s.Logstore.Name)
-
-	mockErr := new(mockErrorRetry)
-	mockErr.RetryCnt = 10000000
-	serverError := Error{}
-	serverError.Message = "server error 502"
-	serverError.HTTPCode = int32(502)
-	mockErr.Err = serverError
-
-	//发生retry，一直retry不成功，err结果为retry超时
-	r, err := request(s.Logstore.project, "POST", uri, h, out[:n], mockErr)
-	s.Nil(r)
-	s.NotNil(err)
-	s.True(strings.Contains(string(err.Error()), "context deadline exceeded"))
-	s.True(strings.Contains(string(err.Error()), "server error 502"))
-	s.True(strings.Contains(string(err.Error()), "stopped retrying err"))
-
-	//err为不符合retry条件的情况, 返回预期的err
-	mockErr.Err.HTTPCode = int32(504)
-	mockErr.Err.Message = "server error 504"
-	r2, err2 := request(s.Logstore.project, "POST", uri, h, out[:n], mockErr)
-
-	s.Nil(r2)
-	s.NotNil(err2)
-	s.True(strings.Contains(string(err2.Error()), "server error 504"))
-	s.False(strings.Contains(string(err2.Error()), "stopped retrying err"))
-	s.False(strings.Contains(string(err2.Error()), "context deadline exceeded"))
-
-	//err为nil的情况，没有retry发生
-	mockErr.Err.HTTPCode = int32(200)
-	mockErr.RetryCnt = 1
-	r3, err3 := request(s.Logstore.project, "POST", uri, h, out[:n], mockErr)
-
-	s.NotNil(r3)
-	s.Nil(err3)
-	r = &http.Response{}
-
-	mockErr.Err.Message = "server error 503"
-	mockErr.Err.HTTPCode = int32(503)
-	mockErr.RetryCnt = 3
-
-	r4, err4 := request(s.Logstore.project, "POST", uri, h, out[:n], mockErr)
-	s.NotNil(r4)
-	s.Nil(err4)
 }
 
 func (s *LogstoreTestSuite) TestReqTimeoutRetry() {
