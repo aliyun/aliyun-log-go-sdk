@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag version (e.g. v0.4.0)'
+        required: true
+        type: string
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate tag format
+        run: |
+          if [[ ! "${{ inputs.tag }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+            echo "::error::Tag must match vX.Y.Z or vX.Y.Z-pre format"
+            exit 1
+          fi
+
+      - name: Check tag does not exist
+        run: |
+          if git rev-parse "refs/tags/${{ inputs.tag }}" >/dev/null 2>&1; then
+            echo "::error::Tag ${{ inputs.tag }} already exists"
+            exit 1
+          fi
+
+      - name: Create tag
+        run: |
+          git tag "${{ inputs.tag }}"
+          git push origin "${{ inputs.tag }}"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "${{ inputs.tag }}" --generate-notes
