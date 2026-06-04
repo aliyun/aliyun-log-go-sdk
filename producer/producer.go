@@ -124,7 +124,10 @@ func validateProducerConfig(producerConfig *ProducerConfig, logger log.Logger) *
 		level.Warn(logger).Log("msg", "The parameter MaxBatchCount exceeds the set maximum and has been reset to the set maximum of 40960.")
 		producerConfig.MaxBatchCount = 40960
 	}
-	if producerConfig.MaxBatchSize > 1024*1024*20 || producerConfig.MaxBatchSize <= 0 {
+	if producerConfig.MaxBatchSize <= 0 {
+		level.Warn(logger).Log("msg", "The parameter MaxBatchSize must be greater than zero, reset to default 5M.")
+		producerConfig.MaxBatchSize = 1024 * 1024 * 5
+	} else if producerConfig.MaxBatchSize > 1024*1024*20 {
 		level.Warn(logger).Log("msg", "The parameter MaxBatchSize exceeds the settable maximum and has reset a single logGroup memory size of up to 20M.")
 		producerConfig.MaxBatchSize = 1024 * 1024 * 20
 	}
