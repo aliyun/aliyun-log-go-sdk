@@ -21,8 +21,9 @@ func TestValidateMaxBatchSize(t *testing.T) {
 		{"5MB kept", 1024 * 1024 * 5, 1024 * 1024 * 5},
 		{"10MB kept", 1024 * 1024 * 10, 1024 * 1024 * 10},
 		{"20MB kept", 1024 * 1024 * 20, 1024 * 1024 * 20},
-		{"over 20MB clamped to 20MB", 1024*1024*20 + 1, 1024 * 1024 * 20},
-		{"50MB clamped to 20MB", 1024 * 1024 * 50, 1024 * 1024 * 20},
+		{"30MB kept", 1024 * 1024 * 30, 1024 * 1024 * 30},
+		{"over 30MB clamped to 30MB", 1024*1024*30 + 1, 1024 * 1024 * 30},
+		{"50MB clamped to 30MB", 1024 * 1024 * 50, 1024 * 1024 * 30},
 	}
 
 	for _, tt := range tests {
