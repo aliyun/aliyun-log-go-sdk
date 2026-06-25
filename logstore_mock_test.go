@@ -120,9 +120,8 @@ func TestLogStoreWriteErrorMock(t *testing.T) {
 	body, _ := proto.Marshal(lg)
 
 	// Compresse body with lz4
-	var hashTable [1 << 16]int
 	out := make([]byte, lz4.CompressBlockBound(len(body)))
-	n, _ := lz4.CompressBlock(body, out, hashTable[:])
+	n, _ := lz4.CompressBlock(body, out, nil)
 
 	h := map[string]string{
 		"x-log-compresstype": "lz4",
