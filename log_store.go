@@ -156,8 +156,7 @@ func (s *LogStore) PutRawLog(rawLogData []byte) (err error) {
 	case Compress_LZ4:
 		// Compresse body with lz4
 		out = make([]byte, lz4.CompressBlockBound(len(rawLogData)))
-		var hashTable [1 << 16]int
-		n, err := lz4.CompressBlock(rawLogData, out, hashTable[:])
+		n, err := lz4.CompressBlock(rawLogData, out, nil)
 		if err != nil {
 			return NewClientError(err)
 		}
@@ -228,8 +227,7 @@ func (s *LogStore) PostRawLogs(body []byte, hashKey *string) (err error) {
 	case Compress_LZ4:
 		// Compresse body with lz4
 		out = make([]byte, lz4.CompressBlockBound(len(body)))
-		var hashTable [1 << 16]int
-		n, err := lz4.CompressBlock(body, out, hashTable[:])
+		n, err := lz4.CompressBlock(body, out, nil)
 		if err != nil {
 			return NewClientError(err)
 		}
@@ -303,8 +301,7 @@ func (s *LogStore) PutLogs(lg *LogGroup) (err error) {
 	case Compress_LZ4:
 		// Compresse body with lz4
 		out = make([]byte, lz4.CompressBlockBound(len(body)))
-		var hashTable [1 << 16]int
-		n, err := lz4.CompressBlock(body, out, hashTable[:])
+		n, err := lz4.CompressBlock(body, out, nil)
 		if err != nil {
 			return NewClientError(err)
 		}
@@ -390,8 +387,7 @@ func (s *LogStore) PostLogStoreLogs(req *PostLogStoreLogsRequest) (err error) {
 	case Compress_LZ4:
 		// Compresse body with lz4
 		out = make([]byte, lz4.CompressBlockBound(len(body)))
-		var hashTable [1 << 16]int
-		n, err := lz4.CompressBlock(body, out, hashTable[:])
+		n, err := lz4.CompressBlock(body, out, nil)
 		if err != nil {
 			return NewClientError(err)
 		}
