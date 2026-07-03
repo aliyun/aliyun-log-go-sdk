@@ -95,6 +95,8 @@ type ClientInterface interface {
 	SetAuthVersion(version AuthVersionType)
 	// Close the client
 	Close() error
+	// DescribeRegions queries available Log Service regions.
+	DescribeRegions(req *DescribeRegionsRequest) (*DescribeRegionsResponse, error)
 
 	// #################### Project Operations #####################
 	// CreateProject create a new loghub project.
