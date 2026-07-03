@@ -170,6 +170,16 @@ func (c *TokenAutoUpdateClient) ResetAccessKeyToken(accessKeyID, accessKeySecret
 	c.logClient.ResetAccessKeyToken(accessKeyID, accessKeySecret, securityToken)
 }
 
+func (c *TokenAutoUpdateClient) DescribeRegions(req *DescribeRegionsRequest) (resp *DescribeRegionsResponse, err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		resp, err = c.logClient.DescribeRegions(req)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
 func (c *TokenAutoUpdateClient) CreateProject(name, description string) (prj *LogProject, err error) {
 	for i := 0; i < c.maxTryTimes; i++ {
 		prj, err = c.logClient.CreateProject(name, description)
