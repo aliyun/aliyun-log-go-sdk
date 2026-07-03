@@ -410,8 +410,10 @@ func (c *Client) ListProjectV3(req *ListProjectRequest) (projects []LogProject, 
 	return body.Projects, body.Count, body.Total, err
 }
 
-// ListAllProjects list all projects with type=all parameter
-// ref https://help.aliyun.com/document_detail/xxxxx.htm
+// ListAllProjects lists projects across all regions.
+// This API is currently available only in supported regions, such as
+// cn-shanghai and ap-southeast-1. It is used to retrieve projects from all
+// regions.
 func (c *Client) ListAllProjects(req *ListAllProjectsRequest) (resp *ListAllProjectsResponse, err error) {
 	h := map[string]string{
 		"x-log-bodyrawsize": "0",
@@ -419,23 +421,25 @@ func (c *Client) ListAllProjects(req *ListAllProjectsRequest) (resp *ListAllProj
 
 	urlVal := url.Values{}
 	urlVal.Add("type", "all")
-	if req.Offset > 0 {
-		urlVal.Add("offset", strconv.Itoa(req.Offset))
-	}
-	if req.Size > 0 {
-		urlVal.Add("size", strconv.Itoa(req.Size))
-	}
-	if req.RegionId != "" {
-		urlVal.Add("regionId", req.RegionId)
-	}
-	if req.ProjectName != "" {
-		urlVal.Add("projectName", req.ProjectName)
-	}
-	if req.ResourceGroupId != "" {
-		urlVal.Add("resourceGroupId", req.ResourceGroupId)
-	}
-	if req.SearchText != "" {
-		urlVal.Add("searchText", req.SearchText)
+	if req != nil {
+		if req.Offset > 0 {
+			urlVal.Add("offset", strconv.Itoa(req.Offset))
+		}
+		if req.Size > 0 {
+			urlVal.Add("size", strconv.Itoa(req.Size))
+		}
+		if req.RegionId != "" {
+			urlVal.Add("regionId", req.RegionId)
+		}
+		if req.ProjectName != "" {
+			urlVal.Add("projectName", req.ProjectName)
+		}
+		if req.ResourceGroupId != "" {
+			urlVal.Add("resourceGroupId", req.ResourceGroupId)
+		}
+		if req.SearchText != "" {
+			urlVal.Add("searchText", req.SearchText)
+		}
 	}
 
 	uri := fmt.Sprintf("/?%s", urlVal.Encode())

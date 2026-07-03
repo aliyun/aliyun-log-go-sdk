@@ -412,30 +412,32 @@ type ListProjectRequest struct {
 	Description string `json:"description,omitempty"` // use it to filter projects by description, support fuzzy search
 }
 
-// ListAllProjectsRequest for ListAllProjects API
+// ListAllProjectsRequest lists projects across all regions.
+// The ListAllProjects API is currently available only in supported regions,
+// such as cn-shanghai and ap-southeast-1.
 type ListAllProjectsRequest struct {
-	Offset           int    `json:"offset,omitempty"`
-	Size             int    `json:"size,omitempty"`
-	RegionId         string `json:"regionId,omitempty"`
-	ProjectName      string `json:"projectName,omitempty"`
-	ResourceGroupId  string `json:"resourceGroupId,omitempty"`
-	SearchText       string `json:"searchText,omitempty"`
+	Offset          int    `json:"offset,omitempty"`
+	Size            int    `json:"size,omitempty"`
+	RegionId        string `json:"regionId,omitempty"`
+	ProjectName     string `json:"projectName,omitempty"`
+	ResourceGroupId string `json:"resourceGroupId,omitempty"`
+	SearchText      string `json:"searchText,omitempty"`
 }
 
 // ProjectSummary for ListAllProjects response
 type ProjectSummary struct {
-	ProjectName       string `json:"projectName"`
-	Description       string `json:"description"`
-	CreateTime        int64  `json:"createTime"`
-	UpdateTime        int64  `json:"updateTime"`
-	Region            string `json:"region"`
-	ResourceGroupId   string `json:"resourceGroupId"`
+	ProjectName     string `json:"projectName"`
+	Description     string `json:"description"`
+	CreateTime      int64  `json:"createTime"`
+	UpdateTime      int64  `json:"updateTime"`
+	Region          string `json:"region"`
+	ResourceGroupId string `json:"resourceGroupId"`
 }
 
 // ListAllProjectsResponse for ListAllProjects API response
 type ListAllProjectsResponse struct {
-	Count    int             `json:"count"`
-	Total    int             `json:"total"`
+	Count    int              `json:"count"`
+	Total    int              `json:"total"`
 	Projects []ProjectSummary `json:"projects"`
 }
 
