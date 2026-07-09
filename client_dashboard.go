@@ -8,11 +8,25 @@ import (
 )
 
 type ChartSearch struct {
-	Logstore string `json:"logstore"`
-	Topic    string `json:"topic"`
-	Query    string `json:"query"`
-	Start    string `json:"start"`
-	End      string `json:"end"`
+	Logstore       string       `json:"logstore"`
+	Topic          string       `json:"topic"`
+	Query          string       `json:"query"`
+	Start          string       `json:"start"`
+	End            string       `json:"end"`
+	ChartQueries   []ChartQuery `json:"chartQueries,omitempty"`
+	DataSourceType string       `json:"dataSourceType,omitempty"`
+}
+
+type ChartQuery struct {
+	DataSource   string `json:"datasource"`
+	DisplayName  string `json:"displayName,omitempty"`
+	Query        string `json:"query"`
+	Name         string `json:"name"`
+	TokenQuery   string `json:"tokenQuery"`
+	LegendFormat string `json:"legendFormat,omitempty"`
+	Project      string `json:"project"`
+	Logstore     string `json:"logstore"`
+	Limit        int    `json:"limit,omitempty"`
 }
 
 type ChartDisplay struct {
@@ -26,17 +40,19 @@ type ChartDisplay struct {
 }
 
 type Chart struct {
-	Title   string       `json:"title"`
-	Type    string       `json:"type"`
-	Search  ChartSearch  `json:"search"`
-	Display ChartDisplay `json:"display"`
+	Title   string                 `json:"title"`
+	Type    string                 `json:"type"`
+	Search  ChartSearch            `json:"search"`
+	Display ChartDisplay           `json:"display"`
+	Action  map[string]interface{} `json:"action,omitempty"`
 }
 
 type Dashboard struct {
-	DashboardName string  `json:"dashboardName"`
-	Description   string  `json:"description"`
-	ChartList     []Chart `json:"charts"`
-	DisplayName   string  `json:"displayName"`
+	DashboardName string            `json:"dashboardName"`
+	Description   string            `json:"description"`
+	ChartList     []Chart           `json:"charts"`
+	DisplayName   string            `json:"displayName"`
+	Attribute     map[string]string `json:"attribute,omitempty"`
 }
 
 type ResponseDashboardItem struct {
