@@ -100,7 +100,7 @@ func TestDashboardJSONFields(t *testing.T) {
 		t.Fatalf("json.Marshal() error = %v", err)
 	}
 
-	var roundTrip map[string]any
+	var roundTrip map[string]interface{}
 	if err := json.Unmarshal(buf, &roundTrip); err != nil {
 		t.Fatalf("round-trip json.Unmarshal() error = %v", err)
 	}

@@ -40,11 +40,11 @@ type ChartDisplay struct {
 }
 
 type Chart struct {
-	Title   string         `json:"title"`
-	Type    string         `json:"type"`
-	Search  ChartSearch    `json:"search"`
-	Display ChartDisplay   `json:"display"`
-	Action  map[string]any `json:"action,omitempty"`
+	Title   string                 `json:"title"`
+	Type    string                 `json:"type"`
+	Search  ChartSearch            `json:"search"`
+	Display ChartDisplay           `json:"display"`
+	Action  map[string]interface{} `json:"action,omitempty"`
 }
 
 type Dashboard struct {
