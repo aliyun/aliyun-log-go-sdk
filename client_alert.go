@@ -344,7 +344,9 @@ func (c *Client) ListSavedSearch(project string, savedSearchName string, offset,
 		"Content-Type":      "application/json",
 		"savedsearchName":   savedSearchName,
 		"offset":            strconv.Itoa(offset),
-		"size":              strconv.Itoa(size),
+	}
+	if size > 0 {
+		h["size"] = strconv.Itoa(size)
 	}
 
 	uri := "/savedsearches"
@@ -377,7 +379,9 @@ func (c *Client) ListSavedSearchV2(project string, savedSearchName string, offse
 		"Content-Type":      "application/json",
 		"savedsearchName":   savedSearchName,
 		"offset":            strconv.Itoa(offset),
-		"size":              strconv.Itoa(size),
+	}
+	if size > 0 {
+		h["size"] = strconv.Itoa(size)
 	}
 
 	uri := "/savedsearches"
@@ -569,7 +573,9 @@ func (c *Client) ListAlert(project, alertName, dashboard string, offset, size in
 	v.Add("jobName", alertName)
 	v.Add("jobType", "Alert")
 	v.Add("offset", fmt.Sprintf("%d", offset))
-	v.Add("size", fmt.Sprintf("%d", size))
+	if size > 0 {
+		v.Add("size", fmt.Sprintf("%d", size))
+	}
 	if dashboard != "" {
 		v.Add("resourceProvider", dashboard)
 	}

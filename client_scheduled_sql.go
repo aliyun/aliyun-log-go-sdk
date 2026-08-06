@@ -196,7 +196,9 @@ func (c *Client) ListScheduledSQL(project, name, displayName string, offset, siz
 	}
 	v.Add("jobType", "ScheduledSQL")
 	v.Add("offset", fmt.Sprintf("%d", offset))
-	v.Add("size", fmt.Sprintf("%d", size))
+	if size > 0 {
+		v.Add("size", fmt.Sprintf("%d", size))
+	}
 
 	uri := "/jobs?" + v.Encode()
 	r, err := c.request(project, "GET", uri, h, nil)
@@ -294,7 +296,9 @@ func (c *Client) ListScheduledSQLJobInstances(projectName, jobName string, statu
 	v.Add("start", fmt.Sprintf("%d", status.FromTime))
 	v.Add("end", fmt.Sprintf("%d", status.ToTime))
 	v.Add("offset", fmt.Sprintf("%d", status.Offset))
-	v.Add("size", fmt.Sprintf("%d", status.Size))
+	if status.Size > 0 {
+		v.Add("size", fmt.Sprintf("%d", status.Size))
+	}
 	if status.State != "" {
 		v.Add("state", string(status.State))
 	}

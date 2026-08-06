@@ -1,4 +1,4 @@
-package sls
+package storeviewrouting
 
 import (
 	"encoding/json"
@@ -8,9 +8,13 @@ import (
 	"sort"
 	"strings"
 
+	sls "github.com/aliyun/aliyun-log-go-sdk"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
 )
+
+type MetricStoreViewRoutingConfig = sls.MetricStoreViewRoutingConfig
+type ProjectStore = sls.ProjectStore
 
 var (
 	prefixRegex         = regexp.MustCompile(`^[a-zA-Z0-9_\-]+\.\*$`)

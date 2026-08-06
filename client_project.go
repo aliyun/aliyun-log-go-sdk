@@ -137,7 +137,11 @@ func (c *Client) ListMachinesV2(project, machineGroupName string, offset, size i
 	h := map[string]string{
 		"x-log-bodyrawsize": "0",
 	}
-	uri := fmt.Sprintf("/machinegroups/%v/machines?offset=%v&size=%v", machineGroupName, offset, size)
+	sizeParam := ""
+	if size > 0 {
+		sizeParam = fmt.Sprintf("&size=%v", size)
+	}
+	uri := fmt.Sprintf("/machinegroups/%v/machines?offset=%v%s", machineGroupName, offset, sizeParam)
 	r, err := c.request(project, "GET", uri, h, nil)
 	if err != nil {
 		return

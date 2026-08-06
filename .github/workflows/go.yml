@@ -31,6 +31,22 @@ jobs:
     - name: E2E build check (compile only, no run)
       run: go test -tags=e2e -run=^$ ./...
 
+  storeview-routing-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contrib/storeviewrouting
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.25
+
+    - name: Unit test
+      run: go test -v ./...
+
   e2e-test:
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'

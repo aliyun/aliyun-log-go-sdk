@@ -433,7 +433,9 @@ func (c *Client) ListIngestion(project, logstore, name, displayName string, offs
 	}
 	v.Add("jobType", "Ingestion")
 	v.Add("offset", fmt.Sprintf("%d", offset))
-	v.Add("size", fmt.Sprintf("%d", size))
+	if size > 0 {
+		v.Add("size", fmt.Sprintf("%d", size))
+	}
 	uri := "/jobs?" + v.Encode()
 	r, err := c.request(project, "GET", uri, h, nil)
 	if err != nil {
@@ -538,7 +540,9 @@ func (c *Client) ListExport(project, logstore, name, displayName string, offset,
 	}
 	v.Add("jobType", "Export")
 	v.Add("offset", fmt.Sprintf("%d", offset))
-	v.Add("size", fmt.Sprintf("%d", size))
+	if size > 0 {
+		v.Add("size", fmt.Sprintf("%d", size))
+	}
 	uri := "/jobs?" + v.Encode()
 	r, err := c.request(project, "GET", uri, h, nil)
 	if err != nil {

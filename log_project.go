@@ -174,7 +174,11 @@ func (p *LogProject) ListLogStoreV2(offset, size int, telemetryType string) ([]s
 		"x-log-bodyrawsize": "0",
 	}
 
-	uri := fmt.Sprintf("/logstores?offset=%d&size=%d&telemetryType=%s", offset, size, telemetryType)
+	sizeParam := ""
+	if size > 0 {
+		sizeParam = fmt.Sprintf("&size=%d", size)
+	}
+	uri := fmt.Sprintf("/logstores?offset=%d%s&telemetryType=%s", offset, sizeParam, telemetryType)
 	r, err := request(p, "GET", uri, h, nil)
 	if err != nil {
 		return nil, NewClientError(err)
@@ -1118,7 +1122,11 @@ func (p *LogProject) listEtlMeta(etlMetaName, etlMetaKey, etlMetaTag string, off
 	h := map[string]string{
 		"x-log-bodyrawsize": "0",
 	}
-	uri := fmt.Sprintf("/%v?offset=%v&size=%v&etlMetaName=%v&etlMetaKey=%v&etlMetaTag=%v", EtlMetaURI, offset, size, etlMetaName, etlMetaKey, etlMetaTag)
+	sizeParam := ""
+	if size > 0 {
+		sizeParam = fmt.Sprintf("&size=%v", size)
+	}
+	uri := fmt.Sprintf("/%v?offset=%v%s&etlMetaName=%v&etlMetaKey=%v&etlMetaTag=%v", EtlMetaURI, offset, sizeParam, etlMetaName, etlMetaKey, etlMetaTag)
 	r, err := request(p, "GET", uri, h, nil)
 	if err != nil {
 		return 0, 0, nil, NewClientError(err)
@@ -1189,7 +1197,11 @@ func (p *LogProject) ListEtlMetaName(offset, size int) (total int, count int, et
 	h := map[string]string{
 		"x-log-bodyrawsize": "0",
 	}
-	uri := fmt.Sprintf("/%v?offset=%v&size=%v", EtlMetaNameURI, offset, size)
+	sizeParam := ""
+	if size > 0 {
+		sizeParam = fmt.Sprintf("&size=%v", size)
+	}
+	uri := fmt.Sprintf("/%v?offset=%v%s", EtlMetaNameURI, offset, sizeParam)
 	r, err := request(p, "GET", uri, h, nil)
 	if err != nil {
 		return 0, 0, nil, NewClientError(err)

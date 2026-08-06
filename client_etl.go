@@ -168,7 +168,11 @@ func (c *Client) ListETL(project string, offset int, size int) (*ListETLResponse
 		"Content-Type":      "application/json",
 	}
 
-	uri := fmt.Sprintf("/jobs?offset=%d&size=%d&jobType=ETL", offset, size)
+	sizeParam := ""
+	if size > 0 {
+		sizeParam = fmt.Sprintf("&size=%d", size)
+	}
+	uri := fmt.Sprintf("/jobs?offset=%d%s&jobType=ETL", offset, sizeParam)
 	r, err := c.request(project, "GET", uri, h, nil)
 	if err != nil {
 		return nil, err
