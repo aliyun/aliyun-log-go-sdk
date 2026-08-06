@@ -271,7 +271,9 @@ func (c *Client) ListDashboard(project string, dashboardName string, offset, siz
 		"Content-Type":      "application/json",
 		"dashboardName":     dashboardName,
 		"offset":            strconv.Itoa(offset),
-		"size":              strconv.Itoa(size),
+	}
+	if size > 0 {
+		h["size"] = strconv.Itoa(size)
 	}
 	uri := "/dashboards"
 	r, err := c.request(project, "GET", uri, h, nil)
@@ -302,7 +304,9 @@ func (c *Client) ListDashboardV2(project string, dashboardName string, offset, s
 		"Content-Type":      "application/json",
 		"dashboardName":     dashboardName,
 		"offset":            strconv.Itoa(offset),
-		"size":              strconv.Itoa(size),
+	}
+	if size > 0 {
+		h["size"] = strconv.Itoa(size)
 	}
 	uri := "/dashboards"
 	r, err := c.request(project, "GET", uri, h, nil)

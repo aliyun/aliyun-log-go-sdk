@@ -170,7 +170,11 @@ func (c *Client) ListResource(resourceType string, resourceName string, offset, 
 		"x-log-bodyrawsize": "0",
 		"Content-Type":      "application/json",
 	}
-	uri := fmt.Sprintf("/resources?type=%s&names=%s&offset=%d&size=%d", resourceType, resourceName, offset, size)
+	sizeParam := ""
+	if size > 0 {
+		sizeParam = fmt.Sprintf("&size=%d", size)
+	}
+	uri := fmt.Sprintf("/resources?type=%s&names=%s&offset=%d%s", resourceType, resourceName, offset, sizeParam)
 	r, err := c.request("", "GET", uri, h, nil)
 	if err != nil {
 		return nil, 0, 0, err
