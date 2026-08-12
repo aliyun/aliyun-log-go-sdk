@@ -230,6 +230,37 @@ func (p *LogProject) GetLogStore(name string) (*LogStore, error) {
 	return s, nil
 }
 
+// EnableLogStoreModify enables log modification and deletion for an existing
+// logstore. The conversion is asynchronous; a successful response only means
+// that the request was accepted.
+func (p *LogProject) EnableLogStoreModify(name string) error {
+	body, err := json.Marshal(struct {
+		Enabled bool `json:"enabled"`
+	}{Enabled: true})
+	if err != nil {
+		return NewClientError(err)
+	}
+
+	h := map[string]string{
+		"x-log-bodyrawsize": fmt.Sprintf("%v", len(body)),
+		"Content-Type":      "application/json",
+	}
+	r, err := request(p, http.MethodPut, "/logstores/"+name+"/modification", h, body)
+	if err != nil {
+		return NewClientError(err)
+	}
+	defer r.Body.Close()
+
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return readResponseError(err)
+	}
+	if r.StatusCode != http.StatusOK {
+		return httpStatusNotOkError(buf, r.Header, r.StatusCode)
+	}
+	return nil
+}
+
 // CreateLogStore creates a new logstore in SLS,
 // where name is logstore name,
 // and ttl is time-to-live(in day) of logs,
