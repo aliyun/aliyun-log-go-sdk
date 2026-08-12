@@ -25,6 +25,7 @@ type LogStore struct {
 	TTL           int    `json:"ttl"`
 	ShardCount    int    `json:"shardCount"`
 	WebTracking   bool   `json:"enable_tracking"`
+	EnableModify  bool   `json:"enableModify"`
 	AutoSplit     bool   `json:"autoSplit"`
 	MaxSplitShard int    `json:"maxSplitShard"`
 

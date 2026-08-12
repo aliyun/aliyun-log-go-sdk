@@ -303,6 +303,16 @@ func (c *TokenAutoUpdateClient) GetLogStore(project string, logstore string) (lo
 	return
 }
 
+func (c *TokenAutoUpdateClient) EnableLogStoreModify(project string, logstore string) (err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		err = c.logClient.EnableLogStoreModify(project, logstore)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
 func (c *TokenAutoUpdateClient) CreateLogStore(project string, logstore string, ttl, shardCnt int, autoSplit bool, maxSplitShard int) (err error) {
 	for i := 0; i < c.maxTryTimes; i++ {
 		err = c.logClient.CreateLogStore(project, logstore, ttl, shardCnt, autoSplit, maxSplitShard)

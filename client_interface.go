@@ -132,6 +132,8 @@ type ClientInterface interface {
 	ListLogStoreV2(project string, offset, size int, telemetryType string) ([]string, error)
 	// GetLogStore returns logstore according by logstore name.
 	GetLogStore(project string, logstore string) (*LogStore, error)
+	// EnableLogStoreModify enables log modification and deletion for an existing logstore.
+	EnableLogStoreModify(project string, logstore string) error
 	// CreateLogStore creates a new logstore in SLS
 	// where name is logstore name,
 	// and ttl is time-to-live(in day) of logs,

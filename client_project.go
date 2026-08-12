@@ -33,6 +33,13 @@ func (c *Client) GetLogStore(project string, logstore string) (*LogStore, error)
 	return proj.GetLogStore(logstore)
 }
 
+// EnableLogStoreModify enables log modification and deletion for an existing
+// logstore. The conversion is asynchronous.
+func (c *Client) EnableLogStoreModify(project string, logstore string) error {
+	proj := convert(c, project)
+	return proj.EnableLogStoreModify(logstore)
+}
+
 // CreateLogStore creates a new logstore in SLS,
 // where name is logstore name,
 // and ttl is time-to-live(in day) of logs,
