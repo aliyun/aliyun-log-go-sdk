@@ -2070,6 +2070,36 @@ func (c *TokenAutoUpdateClient) GetProjectPolicy(project string) (policy string,
 	return
 }
 
+func (c *TokenAutoUpdateClient) PutResourcePolicy(project string, req *PutResourcePolicyRequest) (err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		err = c.logClient.PutResourcePolicy(project, req)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
+func (c *TokenAutoUpdateClient) GetResourcePolicy(project string, resourceType ResourcePolicyResourceType, resourceName string) (resp *GetResourcePolicyResponse, err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		resp, err = c.logClient.GetResourcePolicy(project, resourceType, resourceName)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
+func (c *TokenAutoUpdateClient) DeleteResourcePolicy(project string, resourceType ResourcePolicyResourceType, resourceName string) (err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		err = c.logClient.DeleteResourcePolicy(project, resourceType, resourceName)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
 func (c *TokenAutoUpdateClient) PublishAlertEvent(project string, alertResult []byte) error {
 	var err error = nil
 	for i := 0; i < c.maxTryTimes; i++ {
