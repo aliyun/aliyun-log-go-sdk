@@ -513,6 +513,12 @@ type ClientInterface interface {
 	DeleteProjectPolicy(project string) error
 	// GetProjectPolicy return project's policy.
 	GetProjectPolicy(project string) (string, error)
+	// PutResourcePolicy creates or updates a resource policy.
+	PutResourcePolicy(project string, req *PutResourcePolicyRequest) error
+	// GetResourcePolicy gets the resource policy for a project or logstore.
+	GetResourcePolicy(project string, resourceType ResourcePolicyResourceType, resourceName string) (*GetResourcePolicyResponse, error)
+	// DeleteResourcePolicy deletes the resource policy for a project or logstore.
+	DeleteResourcePolicy(project string, resourceType ResourcePolicyResourceType, resourceName string) error
 
 	// #################### AlertPub Msg  #####################
 	PublishAlertEvent(project string, alertResult []byte) error
