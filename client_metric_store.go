@@ -22,7 +22,7 @@ func (c *Client) CreateMetricStore(project string, metricStore *LogStore) error 
 		Type: "text",
 	}, SubStoreKey{
 		Name: "__labels__",
-		Type: "text",
+		Type: "labels",
 	}, SubStoreKey{
 		Name: "__time_nano__",
 		Type: "long",

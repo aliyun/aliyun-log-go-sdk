@@ -12,6 +12,7 @@ func (s *SubStoreKey) IsValid() bool {
 		return false
 	}
 	if s.Type != "text" &&
+		s.Type != "labels" &&
 		s.Type != "long" &&
 		s.Type != "double" {
 		return false
