@@ -1,5 +1,12 @@
 # Breaking Changes
 
+## v0.1.128 (2026-09-07)
+
+### MetricStore default change
+
+- The deprecated `CreateMetricStore` path now creates MetricStore V2 by using the `labels` type for `__labels__` in the default `prom` substore.
+- Substore key validation now accepts the `labels` type.
+
 ## v0.1.124 (2026-08-06)
 
 ### ⚠️ Module Change: Store View Routing Checker
