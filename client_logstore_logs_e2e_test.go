@@ -5,6 +5,7 @@ package sls_test
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"testing"
 	"time"
 
@@ -22,6 +23,9 @@ func TestLogStoreLogsE2E(t *testing.T) {
 	client.SetHTTPClient(&http.Client{Timeout: 30 * time.Second})
 	for _, atCreation := range []bool{true, false} {
 		t.Run(fmt.Sprintf("enableAtCreation=%t", atCreation), func(t *testing.T) {
+			if !atCreation && os.Getenv("LOG_TEST_ENABLE_EXISTING_MODIFY") != "true" {
+				t.Skip("requires service support and LOG_TEST_ENABLE_EXISTING_MODIFY=true")
+			}
 			store := fmt.Sprintf("go-log-mutations-%d", time.Now().UnixNano())
 			require.NoError(t, client.CreateLogStoreV2(cfg.Project, &sls.LogStore{
 				Name: store, TTL: 1, ShardCount: 1, EnableModify: atCreation,

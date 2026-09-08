@@ -93,11 +93,12 @@ and `LOG_TEST_PROJECT` configured for a test project, run:
 go test -tags=e2e . -run '^TestLogStoreLogsE2E$' -v -count=1 -timeout=20m
 ```
 
-This test creates two temporary, one-shard Logstores with one-day retention in
-the supplied project. It covers `LogStore.EnableModify` at creation and
-`EnableLogStoreModify` after creation, writes synthetic records, updates and
+This test creates temporary, one-shard Logstores with one-day retention in
+the supplied project. It covers `LogStore.EnableModify` at creation. Set
+`LOG_TEST_ENABLE_EXISTING_MODIFY=true` to also test `EnableLogStoreModify`
+after creation, only on a service that supports this API. The test writes synthetic records, updates and
 deletes them by query and row ID, and verifies the affected counts and query
-results. Both stores are deleted by test cleanup. The account needs Logstore
+results. All created stores are deleted by test cleanup. The account needs Logstore
 and index management, write, query, modification-enable, update, and delete
 permissions. Do not run this against a project where test resource creation
 is unwanted.

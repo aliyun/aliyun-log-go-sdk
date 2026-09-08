@@ -152,3 +152,30 @@ func TestLogStoreLogsTimeRangePassthrough(t *testing.T) {
 		require.Equal(t, 2, calls)
 	}
 }
+
+func TestUpdateLogStoreLogsOptionalFields(t *testing.T) {
+	for _, mode := range []string{"", "full", "partial"} {
+		t.Run("mode="+mode, func(t *testing.T) {
+			transport := testutil.NewMockTransport()
+			client := clienthelper.NewMockedClient(transport)
+			calls := 0
+			transport.RegisterResponder(http.MethodPost, "http://project."+clienthelper.MockEndpoint+"/logstores/store/updatelogs", func(req *http.Request) (*http.Response, error) {
+				calls++
+				var body map[string]interface{}
+				require.NoError(t, json.NewDecoder(req.Body).Decode(&body))
+				require.NotContains(t, body, "data")
+				if mode == "" {
+					require.NotContains(t, body, "updateMode")
+				} else {
+					require.Equal(t, mode, body["updateMode"])
+				}
+				require.Equal(t, "id:query", body["query"])
+				require.Equal(t, "row", body["rowId"])
+				return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(`{"affectedRows":0}`)), Header: make(http.Header)}, nil
+			})
+			_, err := client.UpdateLogStoreLogs("project", "store", &sls.UpdateLogStoreLogsRequest{From: 1, To: 2, Query: "id:query", RowID: "row", UpdateMode: mode})
+			require.NoError(t, err)
+			require.Equal(t, 1, calls)
+		})
+	}
+}
