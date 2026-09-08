@@ -46,3 +46,19 @@ func TestEnableLogStoreModify(t *testing.T) {
 
 	require.NoError(t, client.EnableLogStoreModify(project, logstore))
 }
+
+func TestCreateLogStoreWithEnableModify(t *testing.T) {
+	transport := testutil.NewMockTransport()
+	client := clienthelper.NewMockedClient(transport)
+	calls := 0
+	transport.RegisterResponder(http.MethodPost, "http://my-project."+clienthelper.MockEndpoint+"/logstores", func(req *http.Request) (*http.Response, error) {
+		calls++
+		var body map[string]interface{}
+		require.NoError(t, json.NewDecoder(req.Body).Decode(&body))
+		require.Equal(t, true, body["enableModify"])
+		require.Equal(t, "my-store", body["logstoreName"])
+		return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody, Header: make(http.Header)}, nil
+	})
+	require.NoError(t, client.CreateLogStoreV2("my-project", &sls.LogStore{Name: "my-store", TTL: 1, ShardCount: 1, EnableModify: true}))
+	require.Equal(t, 1, calls)
+}

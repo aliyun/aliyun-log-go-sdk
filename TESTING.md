@@ -83,3 +83,21 @@ When extracting an e2e suite from a mixed file, leave the unit-only logic in the
 
 - `TestSignerV4Suite/TestSignV1Case{1,2}` in `signature_v4_test.go` is currently failing on master (expected `"SLS"` prefix vs production `"LOG"` prefix). Pre-existing — not introduced by the unit/e2e split.
 - The `cgo/` subpackage is not built by default. It depends on `github.com/DataDog/zstd` and requires a working CGO toolchain. Skip it in environments without one.
+
+## Synchronous log mutation E2E test
+
+With `LOG_TEST_ENDPOINT`, `LOG_TEST_ACCESS_KEY_ID`, `LOG_TEST_ACCESS_KEY_SECRET`,
+and `LOG_TEST_PROJECT` configured for a test project, run:
+
+```bash
+go test -tags=e2e . -run '^TestLogStoreLogsE2E$' -v -count=1 -timeout=20m
+```
+
+This test creates two temporary, one-shard Logstores with one-day retention in
+the supplied project. It covers `LogStore.EnableModify` at creation and
+`EnableLogStoreModify` after creation, writes synthetic records, updates and
+deletes them by query and row ID, and verifies the affected counts and query
+results. Both stores are deleted by test cleanup. The account needs Logstore
+and index management, write, query, modification-enable, update, and delete
+permissions. Do not run this against a project where test resource creation
+is unwanted.

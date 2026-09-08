@@ -5,6 +5,7 @@
 ### ClientInterface additions
 
 - Added synchronous `UpdateLogStoreLogs` and `DeleteLogStoreLogs` APIs returning `affectedRows`, with support in `Client` and `TokenAutoUpdateClient`. Custom implementations of `ClientInterface` must implement these two methods.
+- Added creation-time `EnableModify` request coverage and an E2E test for both enablement paths followed by synchronous update/delete.
 - Enable log modification with the existing `EnableLogStoreModify` API or `LogStore.EnableModify` before updating or deleting logs.
 
 ## v0.1.128 (2026-09-07)
