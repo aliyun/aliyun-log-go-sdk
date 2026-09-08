@@ -9,13 +9,14 @@ import (
 )
 
 // UpdateLogStoreLogsRequest selects logs by time range and query, or by row ID.
-// From and To are Unix timestamps in seconds; nil omits the corresponding bound.
+// From and To are required Unix timestamps in seconds defining [From, To),
+// including when selecting by row ID. The service validates the time range.
 type UpdateLogStoreLogsRequest struct {
-	From  *int64 `json:"from,omitempty"`
-	To    *int64 `json:"to,omitempty"`
+	From  int64  `json:"from"`
+	To    int64  `json:"to"`
 	Query string `json:"query,omitempty"`
 	RowID string `json:"rowId,omitempty"`
-	// UpdateMode is passed through to the service.
+	// UpdateMode is full or partial; when omitted, the service defaults to partial.
 	UpdateMode string `json:"updateMode,omitempty"`
 	// Data is a JSON-encoded string containing the fields to update.
 	Data string `json:"data"`
@@ -41,10 +42,11 @@ func (c *Client) UpdateLogStoreLogs(project, logstore string, req *UpdateLogStor
 }
 
 // DeleteLogStoreLogsRequest selects logs by time range and query, or by row ID.
-// From and To are Unix timestamps in seconds; nil omits the corresponding bound.
+// From and To are required Unix timestamps in seconds defining [From, To),
+// including when selecting by row ID. The service validates the time range.
 type DeleteLogStoreLogsRequest struct {
-	From  *int64 `json:"from,omitempty"`
-	To    *int64 `json:"to,omitempty"`
+	From  int64  `json:"from"`
+	To    int64  `json:"to"`
 	Query string `json:"query,omitempty"`
 	RowID string `json:"rowId,omitempty"`
 }

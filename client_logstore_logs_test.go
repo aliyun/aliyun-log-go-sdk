@@ -20,20 +20,19 @@ func TestLogStoreLogs(t *testing.T) {
 			t.Run(operation+"/"+selector, func(t *testing.T) {
 				transport := testutil.NewMockTransport()
 				client := clienthelper.NewMockedClient(transport)
-				expected := map[string]interface{}{}
-				var from, to *int64
+				from, to := int64(0), int64(1700000000)
+				expected := map[string]interface{}{"from": float64(from), "to": float64(to)}
 				var query, rowID string
 				if selector == "query" {
-					start, end := int64(0), int64(1700000000)
-					from, to, query = &start, &end, "status:error"
-					expected["from"], expected["to"], expected["query"] = float64(start), float64(end), query
+					query = "status:error"
+					expected["query"] = query
 				} else {
 					rowID = "row-123"
 					expected["rowId"] = rowID
 				}
 				data := `{"status":"已处理"}`
 				if operation == "update" {
-					expected["data"], expected["updateMode"] = data, "replace"
+					expected["data"], expected["updateMode"] = data, "partial"
 				}
 				calls := 0
 				transport.RegisterResponder(http.MethodPost, "http://project."+clienthelper.MockEndpoint+"/logstores/store/"+operation+"logs", func(req *http.Request) (*http.Response, error) {
@@ -48,7 +47,7 @@ func TestLogStoreLogs(t *testing.T) {
 					return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(`{"affectedRows":4294967296}`)), Header: make(http.Header)}, nil
 				})
 				if operation == "update" {
-					resp, err := client.UpdateLogStoreLogs("project", "store", &sls.UpdateLogStoreLogsRequest{From: from, To: to, Query: query, RowID: rowID, UpdateMode: "replace", Data: data})
+					resp, err := client.UpdateLogStoreLogs("project", "store", &sls.UpdateLogStoreLogsRequest{From: from, To: to, Query: query, RowID: rowID, UpdateMode: "partial", Data: data})
 					require.NoError(t, err)
 					require.Equal(t, int64(4294967296), resp.AffectedRows)
 				} else {
@@ -82,7 +81,7 @@ func TestLogStoreLogsResponses(t *testing.T) {
 				})
 				var err error
 				if operation == "update" {
-					resp, e := client.UpdateLogStoreLogs("project", "store", &sls.UpdateLogStoreLogsRequest{RowID: "row", Data: `{}`})
+					resp, e := client.UpdateLogStoreLogs("project", "store", &sls.UpdateLogStoreLogsRequest{From: 1700000000, To: 1700000100, RowID: "row", Data: `{}`})
 					err = e
 					if tc.wantError {
 						require.Nil(t, resp)
@@ -90,7 +89,7 @@ func TestLogStoreLogsResponses(t *testing.T) {
 						require.Equal(t, int64(0), resp.AffectedRows)
 					}
 				} else {
-					resp, e := client.DeleteLogStoreLogs("project", "store", &sls.DeleteLogStoreLogsRequest{RowID: "row"})
+					resp, e := client.DeleteLogStoreLogs("project", "store", &sls.DeleteLogStoreLogsRequest{From: 1700000000, To: 1700000100, RowID: "row"})
 					err = e
 					if tc.wantError {
 						require.Nil(t, resp)
@@ -124,5 +123,32 @@ func TestLogStoreLogsValidation(t *testing.T) {
 		require.Error(t, err)
 		_, err = client.DeleteLogStoreLogs(target[0], target[1], &sls.DeleteLogStoreLogsRequest{})
 		require.Error(t, err)
+	}
+}
+
+// Range validation belongs to the service, and even zero bounds must be sent.
+func TestLogStoreLogsTimeRangePassthrough(t *testing.T) {
+	for _, bounds := range [][2]int64{{0, 0}, {10, 5}} {
+		transport := testutil.NewMockTransport()
+		client := clienthelper.NewMockedClient(transport)
+		calls := 0
+		for _, operation := range []string{"updatelogs", "deletelogs"} {
+			transport.RegisterResponder(http.MethodPost, "http://project."+clienthelper.MockEndpoint+"/logstores/store/"+operation, func(req *http.Request) (*http.Response, error) {
+				calls++
+				var body map[string]interface{}
+				require.NoError(t, json.NewDecoder(req.Body).Decode(&body))
+				require.Equal(t, float64(bounds[0]), body["from"])
+				require.Equal(t, float64(bounds[1]), body["to"])
+				return &http.Response{StatusCode: 400, Body: io.NopCloser(strings.NewReader(`{"errorCode":"InvalidParameter","errorMessage":"invalid time range"}`)), Header: make(http.Header)}, nil
+			})
+		}
+		_, err := client.UpdateLogStoreLogs("project", "store", &sls.UpdateLogStoreLogsRequest{From: bounds[0], To: bounds[1], RowID: "row", Data: `{}`})
+		var serviceError *sls.Error
+		require.ErrorAs(t, err, &serviceError)
+		require.Equal(t, "invalid time range", serviceError.Message)
+		_, err = client.DeleteLogStoreLogs("project", "store", &sls.DeleteLogStoreLogsRequest{From: bounds[0], To: bounds[1], RowID: "row"})
+		require.ErrorAs(t, err, &serviceError)
+		require.Equal(t, "invalid time range", serviceError.Message)
+		require.Equal(t, 2, calls)
 	}
 }
