@@ -2327,3 +2327,23 @@ func (c *TokenAutoUpdateClient) GetMetricStoreV2(project, name string) (metricSt
 	}
 	return
 }
+
+func (c *TokenAutoUpdateClient) UpdateLogStoreLogs(project, logstore string, req *UpdateLogStoreLogsRequest) (resp *UpdateLogStoreLogsResponse, err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		resp, err = c.logClient.UpdateLogStoreLogs(project, logstore, req)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
+func (c *TokenAutoUpdateClient) DeleteLogStoreLogs(project, logstore string, req *DeleteLogStoreLogsRequest) (resp *DeleteLogStoreLogsResponse, err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		resp, err = c.logClient.DeleteLogStoreLogs(project, logstore, req)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}

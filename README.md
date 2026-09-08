@@ -284,3 +284,33 @@ if err != nil {
 ```
 protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf --gofast_out=. log.proto
 ```
+
+### 同步更新和删除日志
+
+先通过 `client.EnableLogStoreModify(project, logstore)` 为已有 Logstore 开启修改能力；
+创建 Logstore 时也可以设置 `LogStore.EnableModify = true`。
+`UpdateLogStoreLogs` 和 `DeleteLogStoreLogs` 同步返回 `AffectedRows`，不创建 task。
+可通过 `RowID` 定位日志，或使用 `From`、`To`（Unix 秒时间戳指针）和 `Query` 筛选。
+时间指针为 `nil` 时不发送该字段，指向 `0` 时会发送时间戳零。
+
+```go
+updated, err := client.UpdateLogStoreLogs(project, logstore, &sls.UpdateLogStoreLogsRequest{
+    RowID: "your-row-id",
+    Data:  `{"status":"processed"}`,
+})
+if err != nil {
+    return err
+}
+fmt.Println(updated.AffectedRows)
+
+deleted, err := client.DeleteLogStoreLogs(project, logstore, &sls.DeleteLogStoreLogsRequest{
+    RowID: "your-row-id",
+})
+if err != nil {
+    return err
+}
+fmt.Println(deleted.AffectedRows)
+```
+
+`Data` 是 JSON 编码后的字符串。`UpdateMode` 原样传递给服务端，留空时省略。
+这两个接口也支持 `TokenAutoUpdateClient`。
