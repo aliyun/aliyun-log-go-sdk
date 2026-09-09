@@ -1,5 +1,14 @@
 # Breaking Changes
 
+## v0.1.129 (2026-09-08)
+
+### ClientInterface additions
+
+- Added synchronous `UpdateLogStoreLogs` and `DeleteLogStoreLogs` APIs returning `affectedRows`, with support in `Client` and `TokenAutoUpdateClient`. Custom implementations of `ClientInterface` must implement these two methods.
+- Added a runnable example for creation-time enablement, synchronous updates/deletes, and resource cleanup.
+- Added creation-time `EnableModify` request coverage and an E2E test for both enablement paths followed by synchronous update/delete.
+- Enable log modification with `LogStore.EnableModify` at creation; the existing `EnableLogStoreModify` API requires support from the target service.
+
 ## v0.1.128 (2026-09-07)
 
 ### MetricStore default change

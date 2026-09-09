@@ -134,6 +134,10 @@ type ClientInterface interface {
 	GetLogStore(project string, logstore string) (*LogStore, error)
 	// EnableLogStoreModify enables log modification and deletion for an existing logstore.
 	EnableLogStoreModify(project string, logstore string) error
+	// UpdateLogStoreLogs synchronously updates logs and returns the affected row count.
+	UpdateLogStoreLogs(project, logstore string, req *UpdateLogStoreLogsRequest) (*UpdateLogStoreLogsResponse, error)
+	// DeleteLogStoreLogs synchronously deletes logs and returns the affected row count.
+	DeleteLogStoreLogs(project, logstore string, req *DeleteLogStoreLogsRequest) (*DeleteLogStoreLogsResponse, error)
 	// CreateLogStore creates a new logstore in SLS
 	// where name is logstore name,
 	// and ttl is time-to-live(in day) of logs,
