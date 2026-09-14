@@ -243,10 +243,12 @@ func (producer *Producer) SendLogListWithCallBack(project, logstore, topic, sour
 
 }
 
+// SendLogListWithTags should use low-cardinality tag combinations, as high cardinality reduces batching efficiency.
 func (producer *Producer) SendLogListWithTags(project, logstore, topic, source string, logList []*sls.Log, tags []*sls.LogTag) error {
 	return producer.SendLogListWithTagsAndCallBack(project, logstore, topic, source, logList, tags, nil)
 }
 
+// SendLogListWithTagsAndCallBack should use low-cardinality tag combinations, as high cardinality reduces batching efficiency.
 func (producer *Producer) SendLogListWithTagsAndCallBack(project, logstore, topic, source string, logList []*sls.Log, tags []*sls.LogTag, callback CallBack) error {
 	if err := producer.waitTime(); err != nil {
 		return err
