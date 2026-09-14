@@ -33,21 +33,29 @@ type ProducerBatch struct {
 	result       *Result
 }
 
-func newProducerBatch(packIdGenerator *PackIdGenerator, project, logstore, logTopic, logSource, shardHash string, config *ProducerConfig) *ProducerBatch {
+func newProducerBatch(packIdGenerator *PackIdGenerator, project, logstore, logTopic, logSource, shardHash string, tags []*sls.LogTag, config *ProducerConfig) *ProducerBatch {
 	logGroup := &sls.LogGroup{
 		Topic:  proto.String(logTopic),
 		Source: proto.String(logSource),
 		Logs:   make([]*sls.Log, 0, config.MaxBatchCount+4),
 	}
 
+	tagCount := len(tags) + len(config.LogTags)
 	if config.GeneratePackId {
-		logGroup.LogTags = append(make([]*sls.LogTag, 0, len(config.LogTags)+1), config.LogTags...)
+		tagCount++
+	}
+	if tagCount > 0 {
+		logGroup.LogTags = make([]*sls.LogTag, 0, tagCount)
+	}
+	for _, tag := range tags {
+		logGroup.LogTags = append(logGroup.LogTags, proto.Clone(tag).(*sls.LogTag))
+	}
+	logGroup.LogTags = append(logGroup.LogTags, config.LogTags...)
+	if config.GeneratePackId {
 		logGroup.LogTags = append(logGroup.LogTags, &sls.LogTag{
 			Key:   &PACK_ID_KEY,
 			Value: proto.String(packIdGenerator.GeneratePackId(project, logstore)),
 		})
-	} else {
-		logGroup.LogTags = config.LogTags
 	}
 
 	producerBatch := &ProducerBatch{

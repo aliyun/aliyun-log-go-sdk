@@ -2,6 +2,8 @@ package producer
 
 import (
 	"errors"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -38,7 +40,7 @@ func initLogAccumulator(config *ProducerConfig, ioWorker *IoWorker, logger log.L
 }
 
 func (logAccumulator *LogAccumulator) addLogToProducerBatch(project, logstore, shardHash, logTopic, logSource string,
-	logData interface{}, callback CallBack) error {
+	logData interface{}, tags []*sls.LogTag, callback CallBack) error {
 	if logAccumulator.shutDownFlag.Load() {
 		level.Warn(logAccumulator.logger).Log("msg", "Producer has started and shut down and cannot write to new logs")
 		return errors.New("Producer has started and shut down and cannot write to new logs")
@@ -48,7 +50,12 @@ func (logAccumulator *LogAccumulator) addLogToProducerBatch(project, logstore, s
 		return nil
 	}
 	if logList, ok := logData.([]*sls.Log); ok {
-		logAccumulator.addLogList(project, logstore, shardHash, logTopic, logSource, logList, callback)
+		for _, tag := range tags {
+			if tag == nil || tag.Key == nil || tag.Value == nil {
+				return errors.New("log tag must have a key and value")
+			}
+		}
+		logAccumulator.addLogList(project, logstore, shardHash, logTopic, logSource, logList, tags, callback)
 		return nil
 	}
 	level.Error(logAccumulator.logger).Log("msg", "Invalid logType")
@@ -57,12 +64,12 @@ func (logAccumulator *LogAccumulator) addLogToProducerBatch(project, logstore, s
 
 func (logAccumulator *LogAccumulator) addLog(project, logstore, shardHash, logTopic, logSource string,
 	log *sls.Log, callback CallBack) {
-	key := logAccumulator.getKeyString(project, logstore, logTopic, shardHash, logSource)
+	key := logAccumulator.getKeyString(project, logstore, logTopic, shardHash, logSource, nil)
 	logSize := int64(GetLogSizeCalculate(log))
 	atomic.AddInt64(&logAccumulator.producer.producerLogGroupSize, logSize)
 
 	logAccumulator.lock.Lock()
-	producerBatch := logAccumulator.getOrCreateProducerBatch(key, project, logstore, logTopic, logSource, shardHash)
+	producerBatch := logAccumulator.getOrCreateProducerBatch(key, project, logstore, logTopic, logSource, shardHash, nil)
 	producerBatch.addLog(log, logSize, callback)
 
 	if !producerBatch.meetSendCondition(logAccumulator.producerConfig) {
@@ -77,13 +84,13 @@ func (logAccumulator *LogAccumulator) addLog(project, logstore, shardHash, logTo
 }
 
 func (logAccumulator *LogAccumulator) addLogList(project, logstore, shardHash, logTopic, logSource string,
-	logList []*sls.Log, callback CallBack) {
-	key := logAccumulator.getKeyString(project, logstore, logTopic, shardHash, logSource)
+	logList []*sls.Log, tags []*sls.LogTag, callback CallBack) {
+	key := logAccumulator.getKeyString(project, logstore, logTopic, shardHash, logSource, tags)
 	logListSize := int64(GetLogListSize(logList))
 	atomic.AddInt64(&logAccumulator.producer.producerLogGroupSize, logListSize)
 
 	logAccumulator.lock.Lock()
-	producerBatch := logAccumulator.getOrCreateProducerBatch(key, project, logstore, logTopic, logSource, shardHash)
+	producerBatch := logAccumulator.getOrCreateProducerBatch(key, project, logstore, logTopic, logSource, shardHash, tags)
 	producerBatch.addLogList(logList, logListSize, callback)
 
 	if !producerBatch.meetSendCondition(logAccumulator.producerConfig) {
@@ -97,28 +104,71 @@ func (logAccumulator *LogAccumulator) addLogList(project, logstore, shardHash, l
 	logAccumulator.threadPool.addTask(producerBatch)
 }
 
-func (logAccumulator *LogAccumulator) getOrCreateProducerBatch(key, project, logstore, logTopic, logSource, shardHash string) *ProducerBatch {
+func (logAccumulator *LogAccumulator) getOrCreateProducerBatch(key, project, logstore, logTopic, logSource, shardHash string, tags []*sls.LogTag) *ProducerBatch {
 	if producerBatch, ok := logAccumulator.logGroupData[key]; ok && producerBatch != nil {
 		return producerBatch
 	}
 
 	logAccumulator.producer.monitor.incCreateBatch()
-	batch := newProducerBatch(logAccumulator.packIdGenrator, project, logstore, logTopic, logSource, shardHash, logAccumulator.producerConfig)
+	batch := newProducerBatch(logAccumulator.packIdGenrator, project, logstore, logTopic, logSource, shardHash, tags, logAccumulator.producerConfig)
 	logAccumulator.logGroupData[key] = batch
 	return batch
 }
 
-func (logAccumulator *LogAccumulator) getKeyString(project, logstore, logTopic, shardHash, logSource string) string {
+func (logAccumulator *LogAccumulator) getKeyString(project, logstore, logTopic, shardHash, logSource string, tags []*sls.LogTag) string {
+	keySize := len(project) + len(logstore) + len(logTopic) + len(shardHash) + len(logSource) + 4
+	var encodedTags []string
+	if len(tags) > 0 {
+		tagsSize := 0
+		for _, tag := range tags {
+			tagsSize += keyFieldSize(tag.GetKey()) + keyFieldSize(tag.GetValue())
+		}
+		keySize += 1 + tagsSize
+
+		var encoded strings.Builder
+		encoded.Grow(tagsSize)
+		encodedTags = make([]string, len(tags))
+		for i, tag := range tags {
+			start := encoded.Len()
+			writeKeyField(&encoded, tag.GetKey())
+			writeKeyField(&encoded, tag.GetValue())
+			encodedTags[i] = encoded.String()[start:]
+		}
+		sort.Strings(encodedTags)
+	}
+
+	// Routing fields are assumed not to contain '$'; tag fields remain length-prefixed.
 	var key strings.Builder
-	key.Grow(len(project) + len(logstore) + len(logTopic) + len(shardHash) + len(logSource) + len(Delimiter)*4)
+	key.Grow(keySize)
 	key.WriteString(project)
-	key.WriteString(Delimiter)
+	key.WriteByte('$')
 	key.WriteString(logstore)
-	key.WriteString(Delimiter)
+	key.WriteByte('$')
 	key.WriteString(logTopic)
-	key.WriteString(Delimiter)
+	key.WriteByte('$')
 	key.WriteString(shardHash)
-	key.WriteString(Delimiter)
+	key.WriteByte('$')
 	key.WriteString(logSource)
+	if len(tags) > 0 {
+		key.WriteByte('$')
+		for _, tag := range encodedTags {
+			key.WriteString(tag)
+		}
+	}
 	return key.String()
+}
+
+func keyFieldSize(value string) int {
+	size := len(value) + 2
+	for n := len(value); n >= 10; n /= 10 {
+		size++
+	}
+	return size
+}
+
+func writeKeyField(key *strings.Builder, value string) {
+	var length [20]byte
+	key.Write(strconv.AppendInt(length[:0], int64(len(value)), 10))
+	key.WriteByte(':')
+	key.WriteString(value)
 }

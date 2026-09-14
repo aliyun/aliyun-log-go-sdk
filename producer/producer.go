@@ -161,7 +161,7 @@ func (producer *Producer) HashSendLogWithCallBack(project, logstore, shardHash, 
 			return err
 		}
 	}
-	return producer.logAccumulator.addLogToProducerBatch(project, logstore, shardHash, topic, source, log, callback)
+	return producer.logAccumulator.addLogToProducerBatch(project, logstore, shardHash, topic, source, log, nil, callback)
 }
 
 func (producer *Producer) HashSendLogListWithCallBack(project, logstore, shardHash, topic, source string, logList []*sls.Log, callback CallBack) (err error) {
@@ -176,7 +176,7 @@ func (producer *Producer) HashSendLogListWithCallBack(project, logstore, shardHa
 			return err
 		}
 	}
-	return producer.logAccumulator.addLogToProducerBatch(project, logstore, shardHash, topic, source, logList, callback)
+	return producer.logAccumulator.addLogToProducerBatch(project, logstore, shardHash, topic, source, logList, nil, callback)
 }
 
 func (producer *Producer) SendLog(project, logstore, topic, source string, log *sls.Log) error {
@@ -184,7 +184,7 @@ func (producer *Producer) SendLog(project, logstore, topic, source string, log *
 	if err != nil {
 		return err
 	}
-	return producer.logAccumulator.addLogToProducerBatch(project, logstore, "", topic, source, log, nil)
+	return producer.logAccumulator.addLogToProducerBatch(project, logstore, "", topic, source, log, nil, nil)
 }
 
 func (producer *Producer) SendLogList(project, logstore, topic, source string, logList []*sls.Log) (err error) {
@@ -193,7 +193,7 @@ func (producer *Producer) SendLogList(project, logstore, topic, source string, l
 		return err
 	}
 
-	return producer.logAccumulator.addLogToProducerBatch(project, logstore, "", topic, source, logList, nil)
+	return producer.logAccumulator.addLogToProducerBatch(project, logstore, "", topic, source, logList, nil, nil)
 
 }
 
@@ -208,7 +208,7 @@ func (producer *Producer) HashSendLog(project, logstore, shardHash, topic, sourc
 			return err
 		}
 	}
-	return producer.logAccumulator.addLogToProducerBatch(project, logstore, shardHash, topic, source, log, nil)
+	return producer.logAccumulator.addLogToProducerBatch(project, logstore, shardHash, topic, source, log, nil, nil)
 }
 
 func (producer *Producer) HashSendLogList(project, logstore, shardHash, topic, source string, logList []*sls.Log) (err error) {
@@ -222,7 +222,7 @@ func (producer *Producer) HashSendLogList(project, logstore, shardHash, topic, s
 			return err
 		}
 	}
-	return producer.logAccumulator.addLogToProducerBatch(project, logstore, shardHash, topic, source, logList, nil)
+	return producer.logAccumulator.addLogToProducerBatch(project, logstore, shardHash, topic, source, logList, nil, nil)
 
 }
 
@@ -231,7 +231,7 @@ func (producer *Producer) SendLogWithCallBack(project, logstore, topic, source s
 	if err != nil {
 		return err
 	}
-	return producer.logAccumulator.addLogToProducerBatch(project, logstore, "", topic, source, log, callback)
+	return producer.logAccumulator.addLogToProducerBatch(project, logstore, "", topic, source, log, nil, callback)
 }
 
 func (producer *Producer) SendLogListWithCallBack(project, logstore, topic, source string, logList []*sls.Log, callback CallBack) (err error) {
@@ -239,8 +239,19 @@ func (producer *Producer) SendLogListWithCallBack(project, logstore, topic, sour
 	if err != nil {
 		return err
 	}
-	return producer.logAccumulator.addLogToProducerBatch(project, logstore, "", topic, source, logList, callback)
+	return producer.logAccumulator.addLogToProducerBatch(project, logstore, "", topic, source, logList, nil, callback)
 
+}
+
+func (producer *Producer) SendLogListWithTags(project, logstore, topic, source string, logList []*sls.Log, tags []*sls.LogTag) error {
+	return producer.SendLogListWithTagsAndCallBack(project, logstore, topic, source, logList, tags, nil)
+}
+
+func (producer *Producer) SendLogListWithTagsAndCallBack(project, logstore, topic, source string, logList []*sls.Log, tags []*sls.LogTag, callback CallBack) error {
+	if err := producer.waitTime(); err != nil {
+		return err
+	}
+	return producer.logAccumulator.addLogToProducerBatch(project, logstore, "", topic, source, logList, tags, callback)
 }
 
 // todo: refactor this
