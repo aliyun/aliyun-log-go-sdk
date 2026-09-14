@@ -41,11 +41,16 @@ func main() {
 		m.Add(1)
 		go func() {
 			defer m.Done()
-			for i := 0; i < 1000; i++ {
-				// GenerateLog  is producer's function for generating SLS format logs
-				// GenerateLog has low performance, and native Log interface is the best choice for high performance.
-				log := producer.GenerateLog(uint32(time.Now().Unix()), map[string]string{"content": "test", "content2": fmt.Sprintf("%v", i)})
-				err := producerInstance.SendLog("log-project", "log-store", "topic", "127.0.0.1", log)
+			for i := 0; i < 10; i++ {
+				logs := make([]*sls.Log, 0, 100)
+				for j := 0; j < 100; j++ {
+					// GenerateLog  is producer's function for generating SLS format logs
+					// GenerateLog has low performance, and native Log interface is the best choice for high performance.
+					log := producer.GenerateLog(uint32(time.Now().Unix()), map[string]string{"content": "test", "content2": fmt.Sprintf("%v", i*100+j)})
+					logs = append(logs, log)
+				}
+				tags := []*sls.LogTag{{Key: proto.String("batch"), Value: proto.String(fmt.Sprintf("%v", i))}}
+				err := producerInstance.SendLogListWithTags("log-project", "log-store", "topic", "127.0.0.1", logs, tags)
 				if err != nil {
 					fmt.Println(err)
 				}

@@ -109,7 +109,43 @@ func(callback *Callback)Fail(result *producer.Result){
 
 用户可以根据自己的需求调用Result实例提供的方法来获取日志发送结果信息，日志每次尝试被发送都会生成attempt信息，默认会保留11次，这个数字可以根据配置参数MaxReservedAttempts进行修改。
 
+## 动态 tags
 
+通过 `SendLogListWithTags` 为一批日志指定动态 tags；需要发送结果回调时，使用 `SendLogListWithTagsAndCallBack`，在最后一个参数传入 `CallBack`。这两个接口仅支持批量日志，不支持指定 shardHash。
+
+对已有的 `logList`（类型为 `[]*sls.Log`），可以这样发送：
+
+```go
+tags := []*sls.LogTag{
+    {Key: proto.String("service"), Value: proto.String("checkout")},
+    {Key: proto.String("env"), Value: proto.String("production")},
+}
+err := producerInstance.SendLogListWithTags("projectName", "logstoreName", "topic", "127.0.0.1", logList, tags)
+if err != nil {
+    fmt.Println(err)
+}
+```
+
+示例中的 `proto` 来自 `github.com/gogo/protobuf/proto`。
+
+### 聚合与基数
+
+- Producer 按 `project`、`logstore`、`topic`、`source` 和动态 tags 分组聚合；动态 tags 的 key、value 及重复次数均参与区分，传入顺序不影响合批。
+- **动态 tags 应使用低基数组合**。基数指不同 tags 组合的数量，而不是每次传入的 tag 个数。高基数会把日志分散到更多批次中，降低合批效果和发送效率；即使只有一个 tag，如果每次值都不同，也会造成高基数。
+- 避免将每条日志不同的请求 ID、随机 UUID 或时间戳作为动态 tags，这类信息建议放入日志字段。
+- `nil` 与空 tags 等价，可与相同路径下的 `SendLogList` 写入合批；每个动态 tag 及其 key、value 指针均不能为 `nil`。
+
+### 与配置 tags、packId 的关系
+
+| 来源 | 注入时机 | 是否参与动态 tags 聚合键 |
+| --- | --- | --- |
+| 接口传入的 `tags` | 创建批次时复制到 LogGroup | 是 |
+| `producerConfig.LogTags` | 创建批次时追加，作为该 Producer 的固定 tags | 否 |
+| `producerConfig.GeneratePackId` 自动生成的 `__pack_id__` | 开启时，在创建批次时生成并追加 | 否 |
+
+最终发送的 `LogGroup.LogTags` 顺序为：**动态 tags → `producerConfig.LogTags` → 自动生成的 `__pack_id__`**。动态 tags 使用创建该批次的首次调用所传入的顺序；配置 tags 和自动 packId 也会附加到旧的发送接口创建的批次上。
+
+三者直接追加，**不去重，也不按 key 覆盖**。同名 key 的 tags 会同时保留；如果手动传入 `__pack_id__` 且开启自动生成，也会保留两者，建议避免这种重复。自动 packId 按批次生成，而不是每次 Send 调用生成，重试时沿用原批次的 packId。
 
 ## **producer配置详解**
 
