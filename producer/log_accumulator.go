@@ -1,9 +1,9 @@
 package producer
 
 import (
+	"encoding/binary"
 	"errors"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -119,9 +119,9 @@ func (logAccumulator *LogAccumulator) getKeyString(project, logstore, logTopic, 
 	keySize := len(project) + len(logstore) + len(logTopic) + len(shardHash) + len(logSource) + 4
 	var encodedTags []string
 	if len(tags) > 0 {
-		tagsSize := 0
+		tagsSize := len(tags) * 8
 		for _, tag := range tags {
-			tagsSize += keyFieldSize(tag.GetKey()) + keyFieldSize(tag.GetValue())
+			tagsSize += len(tag.GetKey()) + len(tag.GetValue())
 		}
 		keySize += 1 + tagsSize
 
@@ -158,17 +158,9 @@ func (logAccumulator *LogAccumulator) getKeyString(project, logstore, logTopic, 
 	return key.String()
 }
 
-func keyFieldSize(value string) int {
-	size := len(value) + 2
-	for n := len(value); n >= 10; n /= 10 {
-		size++
-	}
-	return size
-}
-
 func writeKeyField(key *strings.Builder, value string) {
-	var length [20]byte
-	key.Write(strconv.AppendInt(length[:0], int64(len(value)), 10))
-	key.WriteByte(':')
+	var length [4]byte
+	binary.LittleEndian.PutUint32(length[:], uint32(len(value)))
+	key.Write(length[:])
 	key.WriteString(value)
 }
