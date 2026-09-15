@@ -321,7 +321,9 @@ type IndexLine struct {
 	ExcludeKeys   []string `json:"exclude_keys,omitempty"`
 	Chn           bool     `json:"chn"` // parse chinese or not
 	AutoKeyDetect bool     `json:"auto_key_detect,omitempty"`
-	// AutoTextKeys contains automatically discovered text fields using the line settings.
+	// AutoTextKeys contains keys treated as automatically discovered text field indexes.
+	// Statistical analysis is enabled for these field indexes. Tokenization and case
+	// sensitivity inherit the full-text (line) index settings.
 	// Fields remain effective when AutoKeyDetect is false; disabling detection only
 	// stops new fields from being discovered.
 	// Updates replace the complete list; preserve existing fields when changing other
