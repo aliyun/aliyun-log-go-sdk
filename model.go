@@ -320,6 +320,15 @@ type IndexLine struct {
 	IncludeKeys   []string `json:"include_keys,omitempty"`
 	ExcludeKeys   []string `json:"exclude_keys,omitempty"`
 	Chn           bool     `json:"chn"` // parse chinese or not
+	AutoKeyDetect bool     `json:"auto_key_detect,omitempty"`
+	// AutoTextKeys contains keys treated as automatically discovered text field indexes.
+	// Statistical analysis is enabled for these field indexes. Tokenization and case
+	// sensitivity inherit the full-text (line) index settings.
+	// Disabling AutoKeyDetect stops discovery of new fields; existing AutoTextKeys
+	// remain effective and are retained unless explicitly cleared.
+	// Updates replace the complete list; preserve existing fields when changing other
+	// index settings. Nil and empty slices are omitted from requests.
+	AutoTextKeys []string `json:"auto_text_keys,omitempty"`
 }
 
 // Index is an index config for a log store.
