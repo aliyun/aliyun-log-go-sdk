@@ -322,6 +322,8 @@ type IndexLine struct {
 	Chn           bool     `json:"chn"` // parse chinese or not
 	AutoKeyDetect bool     `json:"auto_key_detect,omitempty"`
 	// AutoTextKeys contains automatically discovered text fields using the line settings.
+	// Fields remain effective when AutoKeyDetect is false; disabling detection only
+	// stops new fields from being discovered.
 	// Updates replace the complete list; preserve existing fields when changing other
 	// index settings. Move fields needing numeric types or custom settings to Keys
 	// and remove them from this list. Nil and empty slices are omitted from requests.

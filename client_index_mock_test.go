@@ -27,6 +27,16 @@ func TestAutoIndexDefaults(t *testing.T) {
 }
 
 func TestAutoIndexCreateGetUpdate(t *testing.T) {
+	t.Run("detection enabled", func(t *testing.T) {
+		testAutoIndexCreateGetUpdate(t, true)
+	})
+	t.Run("detection disabled", func(t *testing.T) {
+		testAutoIndexCreateGetUpdate(t, false)
+	})
+}
+
+func testAutoIndexCreateGetUpdate(t *testing.T, autoKeyDetect bool) {
+	t.Helper()
 	transport := testutil.NewMockTransport()
 	client := clienthelper.NewMockedClient(transport)
 	url := "http://my-project." + clienthelper.MockEndpoint + "/logstores/my-logs/index"
@@ -34,7 +44,7 @@ func TestAutoIndexCreateGetUpdate(t *testing.T) {
 	testutil.RegisterJSON(t, transport, "GET", url, http.StatusOK, map[string]interface{}{
 		"line": map[string]interface{}{
 			"token": []string{",", " "}, "caseSensitive": false,
-			"auto_key_detect": true, "auto_text_keys": fields,
+			"auto_key_detect": autoKeyDetect, "auto_text_keys": fields,
 		},
 	})
 	var methods []string
@@ -51,12 +61,12 @@ func TestAutoIndexCreateGetUpdate(t *testing.T) {
 		})
 	}
 	index := sls.CreateDefaultIndex()
-	index.Line.AutoKeyDetect = true
+	index.Line.AutoKeyDetect = autoKeyDetect
 	index.Line.AutoTextKeys = fields
 	require.NoError(t, client.CreateIndex("my-project", "my-logs", *index))
 	index, err := client.GetIndex("my-project", "my-logs")
 	require.NoError(t, err)
-	require.True(t, index.Line.AutoKeyDetect)
+	require.Equal(t, autoKeyDetect, index.Line.AutoKeyDetect)
 	require.Equal(t, fields, index.Line.AutoTextKeys)
 	index.Line.CaseSensitive = true
 	require.NoError(t, client.UpdateIndex("my-project", "my-logs", *index))
@@ -65,16 +75,23 @@ func TestAutoIndexCreateGetUpdate(t *testing.T) {
 	index.Line.AutoTextKeys = []string{}
 	require.NoError(t, client.UpdateIndex("my-project", "my-logs", *index))
 	index.Line.AutoKeyDetect = false
+	index.Line.AutoTextKeys = fields
 	require.NoError(t, client.UpdateIndex("my-project", "my-logs", *index))
 
 	require.Equal(t, []string{"POST", "PUT", "PUT", "PUT", "PUT"}, methods)
 	for _, body := range bodies[:2] {
 		require.JSONEq(t, `["host","request_id","latency"]`, string(body["auto_text_keys"]))
-		require.Equal(t, "true", string(body["auto_key_detect"]))
+	}
+	for _, body := range bodies[:4] {
+		if autoKeyDetect {
+			require.Equal(t, "true", string(body["auto_key_detect"]))
+		} else {
+			require.NotContains(t, body, "auto_key_detect")
+		}
 	}
 	require.Equal(t, "true", string(bodies[1]["caseSensitive"]))
 	require.JSONEq(t, `["host"]`, string(bodies[2]["auto_text_keys"]))
 	require.NotContains(t, bodies[3], "auto_text_keys")
-	require.Equal(t, "true", string(bodies[3]["auto_key_detect"]))
 	require.NotContains(t, bodies[4], "auto_key_detect")
+	require.JSONEq(t, `["host","request_id","latency"]`, string(bodies[4]["auto_text_keys"]))
 }
