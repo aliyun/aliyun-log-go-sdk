@@ -324,11 +324,10 @@ type IndexLine struct {
 	// AutoTextKeys contains keys treated as automatically discovered text field indexes.
 	// Statistical analysis is enabled for these field indexes. Tokenization and case
 	// sensitivity inherit the full-text (line) index settings.
-	// Fields remain effective when AutoKeyDetect is false; disabling detection only
-	// stops new fields from being discovered.
+	// Disabling AutoKeyDetect stops discovery of new fields; existing AutoTextKeys
+	// remain effective and are retained unless explicitly cleared.
 	// Updates replace the complete list; preserve existing fields when changing other
-	// index settings. Move fields needing numeric types or custom settings to Keys
-	// and remove them from this list. Nil and empty slices are omitted from requests.
+	// index settings. Nil and empty slices are omitted from requests.
 	AutoTextKeys []string `json:"auto_text_keys,omitempty"`
 }
 
