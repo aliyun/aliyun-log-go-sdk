@@ -97,6 +97,9 @@ func configureClient(client sls.ClientInterface, producerConfig *ProducerConfig)
 }
 
 func createClient(producerConfig *ProducerConfig, allowStsFallback bool, logger log.Logger) (sls.ClientInterface, error) {
+	if producerConfig.ApiKey != "" {
+		return &sls.Client{Endpoint: producerConfig.Endpoint, ApiKey: producerConfig.ApiKey}, nil
+	}
 	// use CredentialsProvider
 	if producerConfig.CredentialsProvider != nil {
 		return sls.CreateNormalInterfaceV2(producerConfig.Endpoint, producerConfig.CredentialsProvider), nil
@@ -116,6 +119,9 @@ func createClient(producerConfig *ProducerConfig, allowStsFallback bool, logger 
 }
 
 func validateProducerConfig(producerConfig *ProducerConfig, logger log.Logger) *ProducerConfig {
+	if producerConfig.ApiKey != "" {
+		producerConfig.UseMetricStoreURL = false
+	}
 	if producerConfig.MaxReservedAttempts <= 0 {
 		level.Warn(logger).Log("msg", "This MaxReservedAttempts parameter must be greater than zero,program auto correction to default value")
 		producerConfig.MaxReservedAttempts = 11
@@ -348,7 +354,7 @@ func (producer *Producer) sendCloseProdcerSignal() {
 }
 
 func (producer *Producer) closeStstokenChannel() {
-	if producer.producerConfig.StsTokenShutDown != nil {
+	if producer.producerConfig.ApiKey == "" && producer.producerConfig.StsTokenShutDown != nil {
 		producer.stsCloseOnce.Do(func() {
 			close(producer.producerConfig.StsTokenShutDown)
 			level.Info(producer.logger).Log("msg", "producer closed ststoken")

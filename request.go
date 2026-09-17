@@ -189,7 +189,7 @@ func realRequest(ctx context.Context, project *LogProject, method, uri string, h
 	accessKeyID := project.AccessKeyID
 	accessKeySecret := project.AccessKeySecret
 
-	if project.credentialProvider != nil {
+	if project.apiKey == "" && project.credentialProvider != nil {
 		c, err := project.credentialProvider.GetCredentials()
 		if err != nil {
 			return nil, NewClientError(fmt.Errorf("fail to get credentials: %w", err))
@@ -200,7 +200,7 @@ func realRequest(ctx context.Context, project *LogProject, method, uri string, h
 	}
 
 	// Access with token
-	if stsToken != "" {
+	if project.apiKey == "" && stsToken != "" {
 		headers[HTTPHeaderAcsSecurityToken] = stsToken
 	}
 
@@ -214,12 +214,14 @@ func realRequest(ctx context.Context, project *LogProject, method, uri string, h
 		headers[k] = v
 	}
 	var err error
-	switch project.AuthVersion {
-	case AuthV4:
+	switch {
+	case project.apiKey != "":
+		err = newSignerAPIKey(project.apiKey).Sign(method, uri, headers, body)
+	case project.AuthVersion == AuthV4:
 		headers[HTTPHeaderLogDate] = dateTimeISO8601()
 		signer := NewSignerV4(accessKeyID, accessKeySecret, project.Region)
 		err = signer.SignWithOption(method, uri, headers, body, option.computeContentHash)
-	case AuthV0:
+	case project.AuthVersion == AuthV0:
 		signer := NewSignerV0()
 		err = signer.Sign(method, uri, headers, body)
 	default:
