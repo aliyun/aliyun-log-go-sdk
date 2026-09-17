@@ -111,6 +111,15 @@ type Client struct {
 	Region          string
 	AuthVersion     AuthVersionType //  v1 or v4 signature,default is v1
 
+	// ApiKey authenticates requests with Bearer authentication.
+	// Currently, only log write requests support API keys.
+	// When non-empty, it takes precedence over AK/STS and AuthVersion.
+	// Set Endpoint with an https:// prefix and keep GlobalForceUsingHTTP false to
+	// prevent the plaintext key from being exposed over HTTP. HTTPS is not enforced.
+	// Supported operations are checked by the service.
+	// Configure it before using the client; an empty value keeps AK/STS behavior.
+	ApiKey string
+
 	accessKeyLock       sync.RWMutex
 	credentialsProvider CredentialsProvider
 	// User defined common headers.
@@ -149,6 +158,7 @@ func convertLocked(c *Client, projName string) *LogProject {
 	}
 
 	p.SecurityToken = c.SecurityToken
+	p.apiKey = c.ApiKey
 	p.UserAgent = c.UserAgent
 	p.AuthVersion = c.AuthVersion
 	p.Region = c.Region

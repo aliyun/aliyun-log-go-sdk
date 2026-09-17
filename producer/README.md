@@ -109,6 +109,15 @@ func(callback *Callback)Fail(result *producer.Result){
 
 用户可以根据自己的需求调用Result实例提供的方法来获取日志发送结果信息，日志每次尝试被发送都会生成attempt信息，默认会保留11次，这个数字可以根据配置参数MaxReservedAttempts进行修改。
 
+## API key 写入
+
+```go
+config := producer.GetDefaultProducerConfig()
+config.Endpoint = "https://cn-hangzhou.log.aliyuncs.com" // 使用 https 加密传输，避免密钥泄露
+config.ApiKey = os.Getenv("SLS_API_KEY") // API key
+p, err := producer.NewProducer(config)
+```
+
 ## 动态 tags
 
 通过 `SendLogListWithTags` 为一批日志指定动态 tags；需要发送结果回调时，使用 `SendLogListWithTagsAndCallBack`，在最后一个参数传入 `CallBack`。这两个接口仅支持批量日志，不支持指定 shardHash。
@@ -151,6 +160,7 @@ if err != nil {
 
 | 参数                | 类型        | 描述                                                                                                                                                                                                                    |
 | ------------------- |-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ApiKey | String | 可选，API key 明文，默认空字符串。非空时优先于 AK/STS，使用 Bearer 鉴权；请配置 `https://` endpoint 防止 key 泄露。 |
 | TotalSizeLnBytes    | Int64     | 单个 producer 实例能缓存的日志大小上限，默认为 100MB。                                                                                                                                                                                   |
 | MaxIoWorkerCount    | Int64     | 单个producer能并发的最多groutine的数量，默认为50，该参数用户可以根据自己实际服务器的性能去配置。                                                                                                                                                             |
 | MaxBlockSec         | Int       | 如果 producer 可用空间不足，调用者在 send 方法上的最大阻塞时间，默认为 60 秒。<br/>如果超过这个时间后所需空间仍无法得到满足，send 方法会抛出TimeoutException。如果将该值设为0，当所需空间无法得到满足时，send 方法会立即抛出 TimeoutException。如果您希望 send 方法一直阻塞直到所需空间得到满足，可将该值设为负数。                       |
@@ -172,7 +182,7 @@ if err != nil {
 | StsTokenShutDown    | channel   | 关闭ststoken 自动刷新的通讯信道，当该信道关闭时，不再自动刷新ststoken值。当producer关闭的时候，该参数不为nil值，则会主动调用close去关闭该信道停止ststoken的自动刷新。                                                                                                               |
 | Region              | String    | 日志服务的区域，当签名版本使用 AuthV4 时必选。 例如cn-hangzhou。                                                                                                                                                                            |
 | AuthVersion         | String    | 使用的签名版本，可选枚举值为 AuthV1， AuthV4。AuthV4 签名示例可参考程序 [producer_test.go](producer_test.go)。                                                                                                                                  |
-| UseMetricStoreURL         | bool      | 使用 Metricstore地址进行发送日志,可以提升大基数时间线下的查询性能。                                                                                                                                                                              |
+| UseMetricStoreURL         | bool      | 使用 Metricstore地址进行发送日志,可以提升大基数时间线下的查询性能。`ApiKey` 非空时固定为 `false`，设置为 `true` 不生效。                                                                                                                                                                              |
 | Logger       | log.Logger    | 自定义 logger，该 logger 用于记录 producer 运行时产生的本地日志，不会被上传到服务端。  <ul><li>如果非 nil，会忽略 AllowLogLevel /   LogFileName/ IsJsonType/ LogMaxSize/ LogMaxBackups/ LogCompass 参数。</li><li>如果为 nil，producer 会根据 AllowLogLevel /   LogFileName/ IsJsonType/ LogMaxSize/ LogMaxBackups/ LogCompass 参数自动创建一个 logger 用于记录本地运行日志。</li></ul>                                                                                                                                                                             |
 | AllowLogLevel       | String    | 设置日志输出级别，默认值是Info,consumer中一共有4种日志输出级别，分别为debug,info,warn和error。                                                                                                                                                      |
 | LogFileName         | String    | 日志文件输出路径，不设置的话默认输出到stdout。                                                                                                                                                                                            |
@@ -195,6 +205,5 @@ producer 支持将 producer 自身本地运行日志写入到自定义 logger �
 ## 问题反馈
 
 如果您在使用过程中遇到了问题，可以创建 [GitHub Issue](<https://github.com/aliyun/aliyun-log-go-sdk>)或者前往阿里云支持中心[提交工单](https://workorder.console.aliyun.com/#/ticket/createIndex)。
-
 
 

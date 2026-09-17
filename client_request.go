@@ -49,6 +49,7 @@ func (c *Client) request(project, method, uri string, headers map[string]string,
 	}
 
 	c.accessKeyLock.RLock()
+	apiKey := c.ApiKey
 	stsToken := c.SecurityToken
 	accessKeyID := c.AccessKeyID
 	accessKeySecret := c.AccessKeySecret
@@ -56,7 +57,7 @@ func (c *Client) request(project, method, uri string, headers map[string]string,
 	authVersion := c.AuthVersion
 	c.accessKeyLock.RUnlock()
 
-	if c.credentialsProvider != nil {
+	if apiKey == "" && c.credentialsProvider != nil {
 		res, err := c.credentialsProvider.GetCredentials()
 		if err != nil {
 			return nil, fmt.Errorf("fail to fetch credentials: %w", err)
@@ -67,7 +68,7 @@ func (c *Client) request(project, method, uri string, headers map[string]string,
 	}
 
 	// Access with token
-	if stsToken != "" {
+	if apiKey == "" && stsToken != "" {
 		headers[HTTPHeaderAcsSecurityToken] = stsToken
 	}
 
@@ -80,7 +81,9 @@ func (c *Client) request(project, method, uri string, headers map[string]string,
 		headers[k] = v
 	}
 	var signer Signer
-	if authVersion == AuthV4 {
+	if apiKey != "" {
+		signer = newSignerAPIKey(apiKey)
+	} else if authVersion == AuthV4 {
 		headers[HTTPHeaderLogDate] = dateTimeISO8601()
 		signer = NewSignerV4(accessKeyID, accessKeySecret, region)
 	} else if authVersion == AuthV0 {
