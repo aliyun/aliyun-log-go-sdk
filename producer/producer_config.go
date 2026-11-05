@@ -58,8 +58,18 @@ type ProducerConfig struct {
 	LogTags               []*sls.LogTag
 	GeneratePackId        bool
 	CredentialsProvider   sls.CredentialsProvider
-	UseMetricStoreURL     bool
+	UseMetricStoreURL     bool // Ignored and set to false when ApiKey is non-empty.
 	DisableRuntimeMetrics bool // disable runtime metrics, runtime metrics prints to local log.
+
+	// ApiKey holds the plaintext API key for producer write authentication.
+	// Currently, only log write requests support API keys.
+	// When non-empty, UseMetricStoreURL is ignored and set to false.
+	// When non-empty, it takes precedence over all AK/STS settings and AuthVersion.
+	// Set Endpoint with an https:// prefix and keep
+	// sls.GlobalForceUsingHTTP false to prevent the plaintext key from being exposed
+	// over HTTP. HTTPS is not enforced. Configure it before creating the producer.
+	// Optional, defaults to an empty string, which keeps AK/STS behavior.
+	ApiKey string
 
 	// Deprecated: use CredentialsProvider and UpdateFuncProviderAdapter instead.
 	//

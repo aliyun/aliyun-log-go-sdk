@@ -63,6 +63,7 @@ type LogProject struct {
 	retryTimeout       time.Duration
 	httpClient         *http.Client
 	credentialProvider CredentialsProvider
+	apiKey             string
 
 	// User defined common headers.
 	//
