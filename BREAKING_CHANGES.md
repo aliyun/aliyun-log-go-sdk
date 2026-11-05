@@ -1,5 +1,14 @@
 # Breaking Changes
 
+## Unreleased
+
+### API Addition: `ClientInterface.SetIsCname(bool)`
+
+- `ClientInterface` now includes `SetIsCname(bool)` for custom-domain routing.
+- SDK-provided clients implement this method. External implementations and mocks
+  of `ClientInterface` must add it (or regenerate their mocks).
+- Existing request behavior is unchanged unless CNAME routing is explicitly enabled.
+
 ## v0.1.124 (2026-08-06)
 
 ### ⚠️ Module Change: Store View Routing Checker

@@ -213,6 +213,9 @@ func realRequest(ctx context.Context, project *LogProject, method, uri string, h
 	for k, v := range project.innerHeaders {
 		headers[k] = v
 	}
+	if project.IsCname && project.Name != "" {
+		headers[HTTPHeaderProject] = project.Name
+	}
 	var err error
 	switch project.AuthVersion {
 	case AuthV4:

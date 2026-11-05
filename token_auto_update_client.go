@@ -151,6 +151,11 @@ func (c *TokenAutoUpdateClient) SetRetryTimeout(timeout time.Duration) {
 	c.logClient.SetRetryTimeout(timeout)
 }
 
+// SetIsCname configures endpoint-only routing before sending requests.
+func (c *TokenAutoUpdateClient) SetIsCname(isCname bool) {
+	c.logClient.SetIsCname(isCname)
+}
+
 // SetAuthVersion set auth version that the client used
 func (c *TokenAutoUpdateClient) SetAuthVersion(version AuthVersionType) {
 	c.logClient.SetAuthVersion(version)

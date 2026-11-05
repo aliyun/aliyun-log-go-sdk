@@ -101,6 +101,7 @@ func IsTokenError(err error) bool {
 // Client ...
 type Client struct {
 	Endpoint        string // IP or hostname of SLS endpoint
+	IsCname         bool   // Use Endpoint directly and route by x-log-project; configure before sending requests.
 	AccessKeyID     string // Deprecated: use credentialsProvider instead
 	AccessKeySecret string // Deprecated: use credentialsProvider instead
 	SecurityToken   string // Deprecated: use credentialsProvider instead
@@ -148,6 +149,7 @@ func convertLocked(c *Client, projName string) *LogProject {
 		p, _ = NewLogProject(projName, c.Endpoint, c.AccessKeyID, c.AccessKeySecret)
 	}
 
+	p.SetIsCname(c.IsCname)
 	p.SecurityToken = c.SecurityToken
 	p.UserAgent = c.UserAgent
 	p.AuthVersion = c.AuthVersion
@@ -163,6 +165,12 @@ func convertLocked(c *Client, projName string) *LogProject {
 func (c *Client) WithCredentialsProvider(provider CredentialsProvider) *Client {
 	c.credentialsProvider = provider
 	return c
+}
+
+// SetIsCname enables routing through Endpoint without a project hostname prefix.
+// Configure this option before sending requests; concurrent changes are not supported.
+func (c *Client) SetIsCname(isCname bool) {
+	c.IsCname = isCname
 }
 
 // SetUserAgent set a custom userAgent

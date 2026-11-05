@@ -22,6 +22,27 @@ go get -u github.com/aliyun/aliyun-log-go-sdk
 
 
 
+### 自定义域名（CNAME）访问
+
+默认情况下，SDK 将 project 名称拼接到 endpoint 前，例如 `my-project.cn-hangzhou.log.aliyuncs.com`。
+如果使用支持 `x-log-project` 路由的自定义域名或网关，可以启用 `IsCname`：
+
+```go
+provider := sls.NewStaticCredentialsProvider(accessKeyID, accessKeySecret, securityToken)
+client := sls.CreateNormalInterfaceV2("https://logs.example.com", provider)
+client.SetIsCname(true)
+logstores, err := client.ListLogStore("my-project")
+```
+
+开启后，请求使用 `logs.example.com` 作为 host，并在签名前添加 `x-log-project: my-project`。
+endpoint 的协议和端口保持原有处理方式；无 project 的 API 不自动添加该 header。
+使用 V4 签名时，需通过 `SetRegion` 显式指定自定义域名对应的 region。
+
+`Client` 和 `LogProject` 均支持 `IsCname` 字段及 `SetIsCname(bool)` 方法；
+工厂函数返回的 `ClientInterface` 和 `TokenAutoUpdateClient` 也支持该方法。
+默认值为 `false`，保持原有请求行为。请在发送请求前配置，不要与请求并发修改。
+该开关只改变请求路由，不配置 DNS、TLS 证书或服务端网关。
+
 ### 快速入门
 
 **前言:**   所有的使用样例都位于[example](https://github.com/aliyun/aliyun-log-go-sdk/tree/master/example)目录下，使用该目录下的所有样例前，请先在该目录下的[config.go](https://github.com/aliyun/aliyun-log-go-sdk/blob/master/example/util/config.go)文件中的**init函数**中配置您的 project, logstore等所需要的配置参数，example目录下的所有样例都会使用config.go文件中配置的参数。

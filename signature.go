@@ -19,6 +19,7 @@ const (
 	HTTPHeaderContentLength    = "Content-Length"
 	HTTPHeaderDate             = "Date"
 	HTTPHeaderHost             = "Host"
+	HTTPHeaderProject          = "x-log-project"
 	HTTPHeaderUserAgent        = "User-Agent"
 	HTTPHeaderAcsSecurityToken = "x-acs-security-token"
 	HTTPHeaderAPIVersion       = "x-log-apiversion"

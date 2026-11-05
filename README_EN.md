@@ -19,6 +19,29 @@ API Reference :
 go get github.com/aliyun/aliyun-log-go-sdk
 ```
 
+### Custom domain (CNAME) routing
+
+By default, the SDK prefixes the endpoint with the project name. For a custom
+domain or gateway that supports routing by `x-log-project`, enable `IsCname`:
+
+```go
+provider := sls.NewStaticCredentialsProvider(accessKeyID, accessKeySecret, securityToken)
+client := sls.CreateNormalInterfaceV2("https://logs.example.com", provider)
+client.SetIsCname(true)
+logstores, err := client.ListLogStore("my-project")
+```
+
+Requests use `logs.example.com` directly and include `x-log-project: my-project`
+before signing. Existing scheme and port handling is preserved. APIs without a
+project do not automatically add this header. For V4 signing, explicitly set the
+custom domain's region with `SetRegion`.
+
+Both `Client` and `LogProject` expose `IsCname` and `SetIsCname(bool)`.
+`ClientInterface` and `TokenAutoUpdateClient` also support the setter. The default
+is `false`, preserving existing routing. Configure this option before sending
+requests; concurrent changes are not supported. This option does not configure
+DNS, TLS certificates, or the server-side gateway.
+
 # Example 
 
 ### Write and Read LogHub
