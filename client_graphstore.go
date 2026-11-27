@@ -15,12 +15,23 @@ type CreateGraphStoreRequest struct {
 	StoreName  string               `json:"storeName"`
 	ShardCount int32                `json:"shardCount"`
 	BaseSchema GraphStoreBaseSchema `json:"baseSchema"`
+	// Nil leaves the respective creation mode to the service default.
+	CMSMode         *bool `json:"-"`
+	TimeStateEnable *bool `json:"-"`
 }
 
 func (r CreateGraphStoreRequest) MarshalJSON() ([]byte, error) {
 	type plain CreateGraphStoreRequest
 	r.BaseSchema.Version = 0
-	return json.Marshal(plain(r))
+	r.BaseSchema.CMSMode = false
+	base := struct {
+		graphStoreBaseSchemaWire
+		TimeStateEnable *bool `json:"timeStateEnable,omitempty"`
+	}{graphStoreBaseSchemaWire: r.BaseSchema.wire()}
+	return json.Marshal(struct {
+		plain
+		BaseSchema interface{} `json:"baseSchema"`
+	}{plain(r), base})
 }
 
 type ListGraphStoresRequest struct {
@@ -97,7 +108,7 @@ func graphStorePath(name string) (string, error) {
 }
 
 // Request assembly only: authentication, HTTP errors and timeout remain owned by c.request.
-func (c *Client) graphStoreRequest(project, method, uri string, query url.Values, body interface{}, result interface{}) error {
+func (c *Client) graphStoreRequest(project, method, uri string, query url.Values, body interface{}, result interface{}, requestHeaders ...map[string]string) error {
 	if project == "" {
 		return fmt.Errorf("project is required")
 	}
@@ -115,6 +126,11 @@ func (c *Client) graphStoreRequest(project, method, uri string, query url.Values
 	headers := map[string]string{
 		HTTPHeaderBodyRawSize: strconv.Itoa(len(data)),
 		HTTPHeaderContentType: "application/json",
+	}
+	for _, extra := range requestHeaders {
+		for name, value := range extra {
+			headers[name] = value
+		}
 	}
 	response, err := c.request(project, method, uri, headers, data)
 	if err != nil {
@@ -139,7 +155,14 @@ func (c *Client) CreateGraphStore(project string, req *CreateGraphStoreRequest) 
 	if req == nil {
 		return fmt.Errorf("CreateGraphStore request is required")
 	}
-	return c.graphStoreRequest(project, http.MethodPost, "/graphstore", nil, req, nil)
+	headers := make(map[string]string)
+	if req.CMSMode != nil {
+		headers["x-graphstore-cms-mode"] = strconv.FormatBool(*req.CMSMode)
+	}
+	if req.TimeStateEnable != nil {
+		headers["x-graphstore-time-state-enable"] = strconv.FormatBool(*req.TimeStateEnable)
+	}
+	return c.graphStoreRequest(project, http.MethodPost, "/graphstore", nil, req, nil, headers)
 }
 
 func (c *Client) GetGraphStore(project, graphStore string) (*GetGraphStoreResponse, error) {
@@ -230,9 +253,11 @@ func (c *Client) CreateGraphStoreCollectionSchema(project, graphStore string, sc
 	if schema == nil {
 		return fmt.Errorf("collectionSchema is required")
 	}
+	value := *schema
+	value.Graph = nil
 	body := struct {
 		Value *GraphStoreCollectionSchema `json:"value"`
-	}{schema}
+	}{&value}
 	return c.graphStoreRequest(project, http.MethodPost, uri+"/collectionschemas", nil, body, nil)
 }
 

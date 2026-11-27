@@ -169,6 +169,8 @@ func invoke(p invocation, client sls.ClientInterface, transport *http.Transport)
 	case "CreateGraphStore":
 		var req sls.CreateGraphStoreRequest
 		if err = json.Unmarshal(p.Body, &req); err == nil {
+			req.CMSMode = &req.BaseSchema.CMSMode
+			req.TimeStateEnable = &req.BaseSchema.TimeStateEnable
 			err = client.CreateGraphStore(p.Project, &req)
 		}
 	case "GetGraphStore":

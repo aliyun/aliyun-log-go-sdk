@@ -95,6 +95,7 @@ type ClientInterface interface {
 	DeleteGraphStoreCollectionSchema(project, graphStore string, collectionSchemaName string) error
 	// GraphStore data APIs use the existing LogStore compression and retry policy.
 	PostGraphStoreData(project, graphStore string, req *PostGraphStoreDataRequest) error
+	BatchPostGraphStoreData(project, graphStore string, req *BatchPostGraphStoreDataRequest) error
 	GetGraphStoreData(project, graphStore string, req *GetGraphStoreDataRequest) (*GetGraphStoreDataResponse, error)
 	// SetUserAgent set userAgent for sls client
 	SetUserAgent(userAgent string)

@@ -1,6 +1,8 @@
 package sls
 
 import (
+	"bytes"
+	"compress/zlib"
 	"crypto/md5"
 	"crypto/sha256"
 	"encoding/hex"
@@ -153,15 +155,16 @@ func TestGraphStoreDataWire(t *testing.T) {
 					}
 				}
 				groups := []*LogGroup{
-					{Logs: []*Log{{Time: proto.Uint32(1)}}}, // Incompressible LZ4 block.
+					graphStoreTestGroup("vertex"), // Incompressible LZ4 block.
 					{Logs: []*Log{{Time: proto.Uint32(1), Contents: []*LogContent{
+						graphStoreTestField("__layout__", "edge"),
 						{Key: proto.String("\x00\xffkey"), Value: proto.String("\x00\xff" + strings.Repeat("雪", 256))},
 					}}}},
 				}
 				for _, group := range groups {
 					raw, err := proto.Marshal(group)
 					require.NoError(t, err)
-					for _, compression := range []int{Compress_None, Compress_LZ4, Compress_ZSTD} {
+					for _, compression := range []int{Compress_None, Compress_LZ4, Compress_ZSTD, Compress_GZIP} {
 						require.NoError(t, client.PostGraphStoreData("project", "store", &PostGraphStoreDataRequest{LogGroup: group, CompressType: compression}))
 						check("write", "application/x-protobuf", len(raw))
 						decoded := sent
@@ -176,6 +179,9 @@ func TestGraphStoreDataWire(t *testing.T) {
 							require.Equal(t, "zstd", captured.Header.Get("x-log-compresstype"))
 							decoded, err = slsZstdCompressor.Decompress(sent, nil)
 							require.NoError(t, err)
+						case Compress_GZIP:
+							require.Equal(t, "deflate", captured.Header.Get("x-log-compresstype"))
+							decoded = decodeGraphStoreDeflate(t, sent)
 						default:
 							require.Empty(t, captured.Header.Get("x-log-compresstype"))
 						}
@@ -210,13 +216,13 @@ func TestGraphStoreDataInput(t *testing.T) {
 	client.SetHTTPClient(&http.Client{Transport: transport})
 	for _, group := range []*LogGroup{nil, {}, {Logs: []*Log{}}} {
 		for _, compression := range []int{Compress_LZ4, Compress_None, Compress_ZSTD} {
-			require.NoError(t, client.PostGraphStoreData("", "", &PostGraphStoreDataRequest{LogGroup: group, CompressType: compression}))
+			require.Error(t, client.PostGraphStoreData("project", "store", &PostGraphStoreDataRequest{LogGroup: group, CompressType: compression}))
 		}
 		for _, compression := range []int{-1, Compress_Max} {
 			require.Equal(t, InvalidCompressError, client.PostGraphStoreData("project", "store", &PostGraphStoreDataRequest{LogGroup: group, CompressType: compression}))
 		}
 	}
-	write := &PostGraphStoreDataRequest{LogGroup: &LogGroup{Logs: []*Log{{Time: proto.Uint32(1)}}}}
+	write := &PostGraphStoreDataRequest{LogGroup: graphStoreTestGroup("vertex")}
 	require.Error(t, client.PostGraphStoreData("project", "store", nil))
 	for _, names := range [][2]string{{"", "store"}, {"project", ""}, {"project", "a/b"}, {"project", "a?b"}} {
 		require.Error(t, client.PostGraphStoreData(names[0], names[1], write))
@@ -376,15 +382,18 @@ func TestGraphStoreQueryResponses(t *testing.T) {
 func TestGraphStoreDataRetriesAndToken(t *testing.T) {
 	oldRetry := RetryOnServerErrorEnabled
 	defer func() { RetryOnServerErrorEnabled = oldRetry }()
-	for _, operation := range []string{"write", "query"} {
+	for _, operation := range []string{"write", "batch", "query"} {
 		t.Run(operation, func(t *testing.T) {
 			client := CreateNormalInterface("example.com", "key", "secret", "old-token")
 			client.SetRetryTimeout(2 * time.Second)
 			transport := testutil.NewMockTransport()
 			client.SetHTTPClient(&http.Client{Transport: transport})
 			invoke := func(c ClientInterface) error {
-				if operation == "write" {
-					return c.PostGraphStoreData("project", "store", &PostGraphStoreDataRequest{LogGroup: &LogGroup{Logs: []*Log{{Time: proto.Uint32(1)}}}})
+				switch operation {
+				case "write":
+					return c.PostGraphStoreData("project", "store", &PostGraphStoreDataRequest{LogGroup: graphStoreTestGroup("vertex")})
+				case "batch":
+					return c.BatchPostGraphStoreData("project", "store", &BatchPostGraphStoreDataRequest{LogGroups: []*LogGroup{graphStoreTestGroup("vertex")}})
 				}
 				_, err := c.GetGraphStoreData("project", "store", &GetGraphStoreDataRequest{Query: "RETURN 1", Start: 10, End: 20})
 				return err
@@ -627,4 +636,142 @@ func TestGraphStoreQueryErrorStringKeepsLegacyFields(t *testing.T) {
 		require.JSONEq(t, expected, string(encoded))
 		require.Equal(t, meta, serviceError.Meta)
 	}
+}
+
+func graphStoreTestField(key, value string) *LogContent {
+	return &LogContent{Key: proto.String(key), Value: proto.String(value)}
+}
+
+func graphStoreTestGroup(layout string) *LogGroup {
+	return &LogGroup{Logs: []*Log{{Time: proto.Uint32(1), Contents: []*LogContent{graphStoreTestField("__layout__", layout)}}}}
+}
+
+func decodeGraphStoreDeflate(t *testing.T, data []byte) []byte {
+	t.Helper()
+	reader, err := zlib.NewReader(bytes.NewReader(data))
+	require.NoError(t, err)
+	decoded, err := io.ReadAll(reader)
+	require.NoError(t, err)
+	require.NoError(t, reader.Close())
+	return decoded
+}
+
+func TestGraphStoreBatchWriteWire(t *testing.T) {
+	client := CreateNormalInterface("example.com", "key", "secret", "")
+	transport := testutil.NewMockTransport()
+	client.SetHTTPClient(&http.Client{Transport: transport})
+	var batch SlsLogPackageList
+	transport.RegisterNoResponder(func(req *http.Request) (*http.Response, error) {
+		require.Equal(t, http.MethodPost, req.Method)
+		require.Equal(t, "/graphstore/store/write", req.URL.Path)
+		require.Equal(t, "application/x-protobuf", req.Header.Get("Content-Type"))
+		require.Equal(t, "batch_group", req.Header.Get("x-log-mode"))
+		require.Equal(t, "mixed", req.Header.Get("x-log-compresstype"))
+		body, err := io.ReadAll(req.Body)
+		require.NoError(t, err)
+		require.Equal(t, strconv.Itoa(len(body)), req.Header.Get(HTTPHeaderBodyRawSize))
+		require.NoError(t, proto.Unmarshal(body, &batch))
+		return httpmock.NewStringResponse(200, ""), nil
+	})
+	vertex, edge := graphStoreTestGroup("vertex"), graphStoreTestGroup("edge")
+	edge.Logs[0].Contents = append(edge.Logs[0].Contents,
+		graphStoreTestField("__active_from__", "0"), graphStoreTestField("__active_to__", "4294967295"))
+	groups := []*LogGroup{vertex, edge}
+	for _, tc := range []struct {
+		compression int
+		wire        int32
+	}{
+		{Compress_LZ4, 2}, {Compress_None, 0}, {Compress_ZSTD, 3}, {Compress_GZIP, 1},
+	} {
+		require.NoError(t, client.BatchPostGraphStoreData("project", "store", &BatchPostGraphStoreDataRequest{
+			LogGroups: groups, CompressType: tc.compression,
+		}))
+		require.Len(t, batch.Packages, len(groups))
+		for i, pack := range batch.Packages {
+			require.NotNil(t, pack.CompressType)
+			require.Equal(t, tc.wire, int32(pack.GetCompressType()))
+			require.Equal(t, int32(groups[i].Size()), pack.GetUncompressSize())
+			expected, err := groups[i].Marshal()
+			require.NoError(t, err)
+			decoded := pack.Data
+			switch tc.compression {
+			case Compress_LZ4:
+				decoded = make([]byte, len(expected))
+				n, err := lz4.UncompressBlock(pack.Data, decoded)
+				require.NoError(t, err)
+				require.Equal(t, len(expected), n)
+			case Compress_ZSTD:
+				decoded, err = slsZstdCompressor.Decompress(pack.Data, nil)
+				require.NoError(t, err)
+			case Compress_GZIP:
+				decoded = decodeGraphStoreDeflate(t, pack.Data)
+			}
+			require.Equal(t, expected, decoded)
+		}
+	}
+	require.Equal(t, 4, transport.GetTotalCallCount())
+}
+
+func TestGraphStoreWriteValidation(t *testing.T) {
+	client := CreateNormalInterface("example.com", "key", "secret", "")
+	transport := testutil.NewMockTransport()
+	client.SetHTTPClient(&http.Client{Transport: transport})
+	vertex := graphStoreTestGroup("vertex")
+	for _, tc := range []struct {
+		name string
+		edit func(*LogGroup)
+		want string
+	}{
+		{"missing layout with tag", func(g *LogGroup) {
+			g.Logs[0].Contents = nil
+			g.LogTags = []*LogTag{{Key: proto.String("__layout__"), Value: proto.String("vertex")}}
+		}, "__layout__"},
+		{"duplicate layout", func(g *LogGroup) {
+			g.Logs[0].Contents = append(g.Logs[0].Contents, graphStoreTestField("__layout__", "vertex"))
+		}, "__layout__"},
+		{"unknown layout", func(g *LogGroup) { g.Logs[0].Contents[0].Value = proto.String("VERTEX") }, "__layout__"},
+		{"zero time", func(g *LogGroup) { g.Logs[0].Time = proto.Uint32(0) }, "Time"},
+		{"partial time", func(g *LogGroup) {
+			g.Logs[0].Contents = append(g.Logs[0].Contents, graphStoreTestField("__active_from__", "1"))
+		}, "__active_to__"},
+		{"bad time", func(g *LogGroup) {
+			g.Logs[0].Contents = append(g.Logs[0].Contents,
+				graphStoreTestField("__active_from__", "+1"), graphStoreTestField("__active_to__", "4294967295"))
+		}, "__active_from__"},
+		{"overflow time", func(g *LogGroup) {
+			g.Logs[0].Contents = append(g.Logs[0].Contents,
+				graphStoreTestField("__active_from__", "1"), graphStoreTestField("__active_to__", "4294967296"))
+		}, "__active_to__"},
+		{"nil content", func(g *LogGroup) { g.Logs[0].Contents = append(g.Logs[0].Contents, nil) }, "contents"},
+		{"nil tag", func(g *LogGroup) { g.LogTags = append(g.LogTags, nil) }, "logTags"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			bad := graphStoreTestGroup("edge")
+			tc.edit(bad)
+			require.ErrorContains(t, client.PostGraphStoreData("project", "store", &PostGraphStoreDataRequest{LogGroup: bad}), tc.want)
+			require.ErrorContains(t, client.BatchPostGraphStoreData("project", "store", &BatchPostGraphStoreDataRequest{
+				LogGroups: []*LogGroup{vertex, bad},
+			}), "logGroups[1]")
+		})
+	}
+	require.Error(t, client.BatchPostGraphStoreData("project", "store", nil))
+	require.Error(t, client.BatchPostGraphStoreData("project", "store", &BatchPostGraphStoreDataRequest{}))
+	require.Error(t, client.BatchPostGraphStoreData("project", "store", &BatchPostGraphStoreDataRequest{LogGroups: []*LogGroup{vertex, nil}}))
+	crowded := &LogGroup{Logs: make([]*Log, graphStoreMaxWriteLogs)}
+	for i := range crowded.Logs {
+		crowded.Logs[i] = vertex.Logs[0]
+	}
+	require.ErrorContains(t, client.BatchPostGraphStoreData("project", "store", &BatchPostGraphStoreDataRequest{LogGroups: []*LogGroup{crowded, vertex}}), "exceeds 100000 records")
+
+	large := graphStoreTestGroup("vertex")
+	large.Logs[0].Contents = append(large.Logs[0].Contents, graphStoreTestField("payload", strings.Repeat("x", GraphStoreMaxWriteBytes/2)))
+	require.ErrorContains(t, client.BatchPostGraphStoreData("project", "store", &BatchPostGraphStoreDataRequest{LogGroups: []*LogGroup{large, large}}), "PostBodyTooLarge")
+
+	field := large.Logs[0].Contents[1]
+	field.Value = proto.String(strings.Repeat("x", GraphStoreMaxWriteBytes-large.Size()+len(field.GetValue())))
+	require.Equal(t, GraphStoreMaxWriteBytes, large.Size())
+	require.ErrorContains(t, client.BatchPostGraphStoreData("project", "store", &BatchPostGraphStoreDataRequest{
+		LogGroups: []*LogGroup{large}, CompressType: Compress_None,
+	}), "PostBodyTooLarge")
+	require.Zero(t, transport.GetTotalCallCount())
 }

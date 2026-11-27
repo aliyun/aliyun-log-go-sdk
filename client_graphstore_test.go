@@ -71,11 +71,31 @@ func TestGraphStoreManagementRequests(t *testing.T) {
 			require.Len(t, body, 3)
 			require.Contains(t, string(body["baseSchema"]), "9223372036854775807")
 			require.Equal(t, byte('{'), body["baseSchema"][0])
+			require.Empty(t, captured.Header.Get("x-graphstore-cms-mode"))
+			require.Empty(t, captured.Header.Get("x-graphstore-time-state-enable"))
 			if mode == "v4" {
 				require.NotEmpty(t, captured.Header.Get("x-log-content-sha256"))
 			} else {
 				require.NotEmpty(t, captured.Header.Get("Content-MD5"))
 			}
+			cms, timeState := true, false
+			cmsBase := graphStoreTestBase()
+			cmsBase.CMSMode, cmsBase.TimeStateEnable, cmsBase.Version = true, true, 2
+			cmsBase.VertexLayout.LabelComponents = []string{"domain", "type"}
+			cmsBase.EdgeLayout.Source.LabelComponents = []string{"src_domain", "src_type"}
+			cmsBase.EdgeLayout.Target.LabelComponents = []string{"dst_domain", "dst_type"}
+			require.NoError(t, client.CreateGraphStore("project", &CreateGraphStoreRequest{
+				StoreName: "cms", ShardCount: 2, BaseSchema: cmsBase, CMSMode: &cms, TimeStateEnable: &timeState,
+			}))
+			check(http.MethodPost, "/graphstore")
+			require.Equal(t, "true", captured.Header.Get("x-graphstore-cms-mode"))
+			require.Equal(t, "false", captured.Header.Get("x-graphstore-time-state-enable"))
+			require.NotContains(t, string(requestBody), `"cmsMode"`)
+			require.NotContains(t, string(requestBody), `"timeStateEnable"`)
+			require.NotContains(t, string(requestBody), `"version"`)
+			require.Contains(t, string(requestBody), `"label":["domain","type"]`)
+			require.Contains(t, string(requestBody), `"label":["src_domain","src_type"]`)
+			require.Contains(t, string(requestBody), `"label":["dst_domain","dst_type"]`)
 			maxHash := uint64(math.MaxUint64)
 			for _, hash := range []*uint64{nil, new(uint64), &maxHash} {
 				require.NoError(t, client.SplitGraphStoreShard("project", "store", 3, hash))
@@ -95,7 +115,9 @@ func TestGraphStoreManagementRequests(t *testing.T) {
 			}))
 			check(http.MethodPut, "/graphstore/store/baseschema")
 			require.JSONEq(t, `{"value":{"ttlSeconds":9223372036854775807,"indexEnable":false,"graphLayouts":[{"name":"vertex","keyIndexConfigs":{"id":{"enable":false}}},{"name":"edge","keyIndexConfigs":{}}]}}`, string(requestBody))
-			require.NoError(t, client.CreateGraphStoreCollectionSchema("project", "store", graphStoreTestCollection("雪")))
+			createCollection := graphStoreTestCollection("雪")
+			createCollection.Graph = &GraphStoreCollectionGraph{Label: []string{"domain", "type"}}
+			require.NoError(t, client.CreateGraphStoreCollectionSchema("project", "store", createCollection))
 			check(http.MethodPost, "/graphstore/store/collectionschemas")
 			require.JSONEq(t, `{"value":{"name":"雪","description":"schema","graphLayout":"vertex","collectionKeyValues":[],"fields":[]}}`, string(requestBody))
 			require.NoError(t, client.UpdateGraphStoreCollectionSchema("project", "store", "9223372036854775807", graphStoreTestUpdate("9223372036854775807")))
@@ -133,12 +155,14 @@ func TestGraphStoreManagementRequests(t *testing.T) {
 			check(http.MethodGet, "/graphstore/store/baseschema")
 			require.Equal(t, int64(math.MaxInt64), base.StoreID)
 			require.Equal(t, int64(math.MaxInt64), base.BaseSchema.TTLSeconds)
-			schema := graphStoreTestJSON(t, graphStoreTestCollection("9223372036854775807"))
+			expected := graphStoreTestCollection("9223372036854775807")
+			expected.Graph = &GraphStoreCollectionGraph{Label: []string{"infra", "host"}}
+			schema := graphStoreTestJSON(t, expected)
 			responseBody = `{"projectId":1,"storeName":"store","collectionSchema":` + schema + "}"
 			collection, err := client.GetGraphStoreCollectionSchema("project", "store", "9223372036854775807")
 			require.NoError(t, err)
 			check(http.MethodGet, "/graphstore/store/collectionschemas/9223372036854775807")
-			require.Equal(t, *graphStoreTestCollection("9223372036854775807"), collection.CollectionSchema)
+			require.Equal(t, *expected, collection.CollectionSchema)
 			responseBody = `{"projectId":1,"storeName":"store","collectionSchemas":[` + schema + `],"nextPageToken":"a+b/=&"}`
 			page, err := client.ListGraphStoreCollectionSchemas("project", "store", 1, "a+b/=&")
 			require.NoError(t, err)

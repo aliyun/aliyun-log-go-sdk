@@ -68,10 +68,40 @@ type GraphStoreCollectionKeyValue struct {
 
 // GraphStoreEndpoint describes logical schema configuration, without physical storage metadata.
 type GraphStoreEndpoint struct {
-	// Required source or target label field name.
-	Label string `json:"label"`
+	// Legacy shorthand for a single component. LabelComponents takes precedence.
+	Label string `json:"-"`
+	// Ordered label field names for the source or target.
+	LabelComponents []string `json:"-"`
 	// Required source or target ID field name.
 	ID string `json:"id"`
+}
+
+// LabelFields returns the endpoint label field names in binding order.
+func (s GraphStoreEndpoint) LabelFields() []string {
+	return graphStoreLabelFields(s.Label, s.LabelComponents)
+}
+
+func (s GraphStoreEndpoint) MarshalJSON() ([]byte, error) {
+	type plain GraphStoreEndpoint
+	return json.Marshal(struct {
+		plain
+		Label []string `json:"label"`
+	}{plain(s), s.LabelFields()})
+}
+
+func (s *GraphStoreEndpoint) UnmarshalJSON(data []byte) error {
+	type plain GraphStoreEndpoint
+	var endpoint GraphStoreEndpoint
+	value := struct {
+		*plain
+		Label graphStoreLabel `json:"label"`
+	}{plain: (*plain)(&endpoint)}
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	endpoint.Label, endpoint.LabelComponents = value.Label.layoutFields()
+	*s = endpoint
+	return nil
 }
 
 // GraphStoreCollectionSchema describes logical schema configuration, without physical storage metadata.
@@ -88,6 +118,31 @@ type GraphStoreCollectionSchema struct {
 	TTLSeconds *int64 `json:"ttlSeconds,omitempty"`
 	// Required property array; an empty array is valid.
 	Fields []GraphStoreFieldSchema `json:"fields"`
+	// Read-only logical labels returned by Get/List; omitted from Create requests.
+	Graph *GraphStoreCollectionGraph `json:"graph,omitempty"`
+}
+
+// GraphStoreCollectionGraph contains the effective labels for a collection.
+type GraphStoreCollectionGraph struct {
+	// Label is []string for vertices and string for edges.
+	Label       interface{} `json:"label"`
+	SourceLabel []string    `json:"sourceLabel,omitempty"`
+	TargetLabel []string    `json:"targetLabel,omitempty"`
+}
+
+func (s *GraphStoreCollectionGraph) UnmarshalJSON(data []byte) error {
+	type plain GraphStoreCollectionGraph
+	var graph GraphStoreCollectionGraph
+	value := struct {
+		*plain
+		Label graphStoreLabel `json:"label"`
+	}{plain: (*plain)(&graph)}
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	graph.Label = value.Label.value
+	*s = graph
+	return nil
 }
 
 // GraphStoreCollectionSchemaUpdate describes logical schema configuration, without physical storage metadata.
@@ -105,8 +160,10 @@ type GraphStoreCollectionSchemaUpdate struct {
 // GraphStoreVertexLayout names key fields. Nil CK/PK/RouteKey use server defaults;
 // non-nil empty slices are encoded as [] and are distinct from omitted keys.
 type GraphStoreVertexLayout struct {
-	// Required vertex label field name.
-	Label string `json:"label"`
+	// Legacy shorthand for a single component. LabelComponents takes precedence.
+	Label string `json:"-"`
+	// Ordered vertex label field names.
+	LabelComponents []string `json:"-"`
 	// Required vertex ID field name.
 	ID string `json:"id"`
 	// Nil omits the key; an explicit empty list is preserved. Defaults and key rules belong to the service.
@@ -117,6 +174,59 @@ type GraphStoreVertexLayout struct {
 	RouteKey []string `json:"routeKey,omitempty"`
 	// Optional typed key index configuration; nil omits the field.
 	KeyIndexConfigs map[string]GraphStoreIndexConfig `json:"keyIndexConfigs,omitempty"`
+}
+
+// LabelFields returns the vertex label field names in binding order.
+func (s GraphStoreVertexLayout) LabelFields() []string {
+	return graphStoreLabelFields(s.Label, s.LabelComponents)
+}
+
+func graphStoreLabelFields(label string, components []string) []string {
+	if components != nil {
+		return components
+	}
+	if label != "" {
+		return []string{label}
+	}
+	return nil
+}
+
+type graphStoreLabel struct {
+	value interface{}
+}
+
+func (s *graphStoreLabel) UnmarshalJSON(data []byte) error {
+	if data[0] == '"' {
+		var label string
+		if err := json.Unmarshal(data, &label); err != nil {
+			return err
+		}
+		s.value = label
+		return nil
+	}
+	var components []string
+	if err := json.Unmarshal(data, &components); err != nil {
+		return err
+	}
+	s.value = nil
+	if components != nil {
+		s.value = components
+	}
+	return nil
+}
+
+func (s graphStoreLabel) layoutFields() (string, []string) {
+	switch label := s.value.(type) {
+	case string:
+		return label, nil
+	case []string:
+		if len(label) == 1 && label[0] != "" {
+			return label[0], nil
+		}
+		return "", label
+	default:
+		return "", nil
+	}
 }
 
 // Name is the fixed wire discriminator.
@@ -148,11 +258,12 @@ func (s GraphStoreVertexLayout) MarshalJSON() ([]byte, error) {
 	value := struct {
 		*plain
 		Name            string                            `json:"name"`
+		Label           []string                          `json:"label"`
 		CK              *[]string                         `json:"ck,omitempty"`
 		PK              *[]string                         `json:"pk,omitempty"`
 		RouteKey        *[]string                         `json:"routeKey,omitempty"`
 		KeyIndexConfigs *map[string]GraphStoreIndexConfig `json:"keyIndexConfigs,omitempty"`
-	}{plain: (*plain)(&s), Name: s.Name()}
+	}{plain: (*plain)(&s), Name: s.Name(), Label: s.LabelFields()}
 	if s.CK != nil {
 		value.CK = &s.CK
 	}
@@ -166,6 +277,21 @@ func (s GraphStoreVertexLayout) MarshalJSON() ([]byte, error) {
 		value.KeyIndexConfigs = &s.KeyIndexConfigs
 	}
 	return json.Marshal(value)
+}
+
+func (s *GraphStoreVertexLayout) UnmarshalJSON(data []byte) error {
+	type plain GraphStoreVertexLayout
+	var layout GraphStoreVertexLayout
+	value := struct {
+		*plain
+		Label graphStoreLabel `json:"label"`
+	}{plain: (*plain)(&layout)}
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	layout.Label, layout.LabelComponents = value.Label.layoutFields()
+	*s = layout
+	return nil
 }
 
 func (s GraphStoreEdgeLayout) MarshalJSON() ([]byte, error) {
@@ -213,7 +339,9 @@ type GraphStoreBaseSchemaUpdate struct {
 type GraphStoreBaseSchema struct {
 	// Read-only Store version assigned by Master; omitted from create requests.
 	Version uint32 `json:"version,omitempty"`
-	// Required time state setting.
+	// Read-only CMS mode returned by Get; Create controls it through request headers.
+	CMSMode bool `json:"cmsMode,omitempty"`
+	// Read-only time state setting returned by Get; Create controls it through request headers.
 	TimeStateEnable bool `json:"timeStateEnable"`
 	// Required positive seconds; validated by the service.
 	TTLSeconds int64 `json:"ttlSeconds"`
@@ -229,12 +357,19 @@ type GraphStoreBaseSchema struct {
 	EdgeLayout GraphStoreEdgeLayout `json:"-"`
 }
 
+type graphStoreBaseSchemaFields GraphStoreBaseSchema
+
+type graphStoreBaseSchemaWire struct {
+	graphStoreBaseSchemaFields
+	GraphLayouts [2]interface{} `json:"graphLayouts"`
+}
+
+func (s GraphStoreBaseSchema) wire() graphStoreBaseSchemaWire {
+	return graphStoreBaseSchemaWire{graphStoreBaseSchemaFields(s), [2]interface{}{s.VertexLayout, s.EdgeLayout}}
+}
+
 func (s GraphStoreBaseSchema) MarshalJSON() ([]byte, error) {
-	type plain GraphStoreBaseSchema
-	return json.Marshal(struct {
-		plain
-		GraphLayouts [2]interface{} `json:"graphLayouts"`
-	}{plain(s), [2]interface{}{s.VertexLayout, s.EdgeLayout}})
+	return json.Marshal(s.wire())
 }
 
 func (s *GraphStoreBaseSchema) UnmarshalJSON(data []byte) error {
@@ -242,23 +377,25 @@ func (s *GraphStoreBaseSchema) UnmarshalJSON(data []byte) error {
 	var candidate GraphStoreBaseSchema
 	value := struct {
 		*plain
-		GraphLayouts []struct {
-			GraphStoreVertexLayout
-			Name   string             `json:"name"`
-			Source GraphStoreEndpoint `json:"source"`
-			Target GraphStoreEndpoint `json:"target"`
-		} `json:"graphLayouts"`
+		GraphLayouts []json.RawMessage `json:"graphLayouts"`
 	}{plain: (*plain)(&candidate)}
 	if err := json.Unmarshal(data, &value); err != nil {
 		return err
 	}
 	for _, layout := range value.GraphLayouts {
-		switch layout.Name {
+		var discriminator struct{ Name string }
+		if err := json.Unmarshal(layout, &discriminator); err != nil {
+			return err
+		}
+		switch discriminator.Name {
 		case "vertex":
-			candidate.VertexLayout = layout.GraphStoreVertexLayout
+			if err := json.Unmarshal(layout, &candidate.VertexLayout); err != nil {
+				return err
+			}
 		case "edge":
-			candidate.EdgeLayout = GraphStoreEdgeLayout{layout.Source, layout.Label, layout.Target,
-				layout.CK, layout.PK, layout.RouteKey, layout.KeyIndexConfigs}
+			if err := json.Unmarshal(layout, &candidate.EdgeLayout); err != nil {
+				return err
+			}
 		}
 	}
 	*s = candidate

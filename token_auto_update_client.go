@@ -38,6 +38,16 @@ func (c *TokenAutoUpdateClient) PostGraphStoreData(project, graphStore string, r
 	return
 }
 
+func (c *TokenAutoUpdateClient) BatchPostGraphStoreData(project, graphStore string, req *BatchPostGraphStoreDataRequest) (err error) {
+	for i := 0; i < c.maxTryTimes; i++ {
+		err = c.logClient.BatchPostGraphStoreData(project, graphStore, req)
+		if !c.processError(err) {
+			return
+		}
+	}
+	return
+}
+
 func (c *TokenAutoUpdateClient) GetGraphStoreData(project, graphStore string, req *GetGraphStoreDataRequest) (result *GetGraphStoreDataResponse, err error) {
 	for i := 0; i < c.maxTryTimes; i++ {
 		result, err = c.logClient.GetGraphStoreData(project, graphStore, req)

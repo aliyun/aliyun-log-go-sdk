@@ -58,10 +58,10 @@ compatibility overload. HTTP still uses `baseSchema`, `value`, `collectionSchema
 
 | Model | Fields and meaning |
 | --- | --- |
-| BaseSchema | Required timeStateEnable, positive int64 ttlSeconds, indexEnable, vertexLayout and edgeLayout; commonFieldNames defaults to []; optional fullTextIndex. |
-| VertexLayout | Fixed read-only name vertex; required label/id **field names**. Optional ck/pk/routeKey and keyIndexConfigs. |
+| BaseSchema | Required positive int64 ttlSeconds, indexEnable, vertexLayout and edgeLayout. Optional fullTextIndex. commonFieldNames defaults to []. |
+| VertexLayout | Fixed name vertex. Supply ordered label **field names** and one id **field name**. Optional ck/pk/routeKey and keyIndexConfigs. |
 | EdgeLayout | Fixed read-only name edge; required source/target Endpoint and label field name; the same optional keys/index map. |
-| Endpoint | Required nonempty label/id field names. |
+| Endpoint | Required ordered label field names and one nonempty id field name. |
 | CollectionSchema | Required nonempty name/description, graphLayout (vertex/edge), collectionKeyValues and fields arrays. Optional positive int64 ttlSeconds. |
 | CollectionSchemaUpdate | Required name/description and complete replacement fields array; optional positive ttlSeconds. No layout or CK mutation fields. |
 | CollectionKeyValue | Required nonempty name and string value; value may be empty. These are logical constants, not arbitrary binary PB values. |
@@ -73,9 +73,10 @@ Base TTL must be positive. Collection TTL unset/null inherits BaseSchema; an exp
 must be positive seconds. Zero/negative TTL values are invalid. Update is replacement:
 unset/null TTL restores inheritance. The service owns these business checks.
 Required `fields` and `collectionKeyValues` arrays may be empty. Optional keys are omitted when
-unset; explicit empty lists remain empty lists. Vertex defaults are ck=[label], pk=[id],
-routeKey=[label]; Edge defaults are ck=[source.label,label,target.label],
-pk=[source.id,target.id], routeKey=[source.label]. Defaults, valid key projections, index
+unset; explicit empty lists remain empty lists. Vertex defaults are `ck=label`, `pk=[id]` and
+`routeKey=label+[id]`. Edge defaults are `ck=source.label+[label]+target.label`,
+`pk=[source.id,target.id]` and `routeKey=source.label+[source.id]`. Here `+` concatenates slices.
+Defaults, valid key projections, index
 combinations, token rules, physical IDs/roles/versions and logical-to-physical compilation belong
 to the service. Like LogStore indexes, ordinary schema fields use encoding/json and their JSON tags;
 missing/null members use native zero/nil values and unknown members are ignored. String-backed enum
@@ -94,11 +95,31 @@ separates omission from zero. ListGraphStores Offset/Size use *int; collection p
 Missing/null nextPageToken means no next page. GetGraphStore reads signed-int32 shards without
 rechecking their count, order or uniqueness. Ordinary response extensions are ignored.
 
+## Creation modes and label components
+
+Set `CreateGraphStoreRequest.CMSMode` and `TimeStateEnable` to pointers to the desired boolean
+values. The SDK sends these as `x-graphstore-cms-mode` and `x-graphstore-time-state-enable`
+request headers. Nil uses the service default. BaseSchema reports `CMSMode`, `TimeStateEnable`
+and `Version` in Get responses. The create body omits these read-only fields.
+
+Vertex and endpoint `LabelComponents` are ordered field names. The existing scalar `Label`
+works as shorthand for one component and encodes as a singleton JSON array. Ordinary stores
+use one component. CMS vertices and endpoints use two components, such as
+`[]string{"__domain__", "__entity_type__"}`. The edge relation label remains a single string.
+Set one `CollectionKeyValues` entry per label component, including each endpoint component.
+
+Get and List expose effective collection labels through `GraphStoreCollectionSchema.Graph`.
+Its `Label` is `[]string` for vertices or `string` for edges. Edge `SourceLabel` and
+`TargetLabel` are ordered `[]string` values. Create omits the read-only `Graph` field.
+
 ## Write and query
 
 ```go
 err := client.PostGraphStoreData(project, storeName, &sls.PostGraphStoreDataRequest{
     LogGroup: group, CompressType: sls.Compress_LZ4,
+})
+err = client.BatchPostGraphStoreData(project, storeName, &sls.BatchPostGraphStoreDataRequest{
+    LogGroups: []*sls.LogGroup{vertexGroup, edgeGroup}, CompressType: sls.Compress_LZ4,
 })
 rows, err := client.GetGraphStoreData(project, storeName, &sls.GetGraphStoreDataRequest{
     Query: "MATCH (n) RETURN n", Start: 1700000000, End: 1700001000, Session: "opaque",
@@ -107,11 +128,16 @@ rows, err := client.GetGraphStoreData(project, storeName, &sls.GetGraphStoreData
 // nil is JSON null; numbers are json.Number; strings, booleans, maps and lists remain native. Handle err first.
 ```
 
-Write returns error only. NONE/LZ4/Zstd retain native LogStore behavior; LZ4 is the default.
-After compression validation, nil/zero-log groups are local no-ops; a nil request is invalid.
-Actual writes serialize standard LogGroup once, preserving exact binary PB values. Management
-uses c.request; data APIs retain request(convert(...)), RetryOnServerErrorEnabled, RetryTimeOut
-and credential refresh. The retry timeout does not cancel an in-flight HTTP request.
+Both write methods return an error. They support NONE, LZ4 (default), Zstd and GZIP (wire
+`deflate`). Each request must have nonempty LogGroups. Every record must have nonzero
+protobuf `Time` and exactly one `__layout__` Content with value `vertex` or `edge`.
+Optional `__active_from__` and `__active_to__` must occur together as decimal uint32
+Unix seconds. Write requests are limited to 100,000 records and 10 MiB for both raw
+input and the HTTP body.
+
+Batch writes compress each LogGroup independently in a `SlsLogPackageList` sent as
+`batch_group`. Management and data methods retain the existing request paths and
+credential refresh. The retry timeout does not cancel an in-flight HTTP request.
 
 Query sends int64 closed [start,end], 0 <= start <= end. NewGetGraphStoreDataRequest defaults
 to [0,4294967295]; an explicit struct supports [0,0]. Session is optional and opaque.
@@ -127,7 +153,7 @@ parser retries. Service errors retain *sls.Error; mutations can have unknown res
 ACK does not promise query visibility/durability; retries may duplicate delivery. Callers own polling.
 
 SDK validation uses `go test .`, targeted race tests and `go build .`.
-All 14 operations stay on the existing interface. No dependency/module version change or release
+All 15 operations stay on the existing interface. No dependency/module version change or release
 is implied. The E2E bridge decodes fixture JSON into these typed models before calling the SDK.
 
 ## Runnable CRUD sample

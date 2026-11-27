@@ -112,3 +112,20 @@ func TestGraphStoreVersionIsReadOnly(t *testing.T) {
 		require.Error(t, json.Unmarshal([]byte(`{"version":`+value+`}`), &GraphStoreBaseSchema{}))
 	}
 }
+
+func TestGraphStoreOrderedLabels(t *testing.T) {
+	var base GraphStoreBaseSchema
+	require.NoError(t, json.Unmarshal([]byte(`{"cmsMode":true,"timeStateEnable":true,"graphLayouts":[{"name":"vertex","label":["domain","type"],"id":"id"},{"name":"edge","label":"relation","source":{"label":"old_src","id":"sid"},"target":{"label":["dst_domain","dst_type"],"id":"tid"}}]}`), &base))
+	require.True(t, base.CMSMode)
+	require.True(t, base.TimeStateEnable)
+	require.Equal(t, []string{"domain", "type"}, base.VertexLayout.LabelFields())
+	require.Equal(t, []string{"old_src"}, base.EdgeLayout.Source.LabelFields())
+	require.Equal(t, []string{"dst_domain", "dst_type"}, base.EdgeLayout.Target.LabelFields())
+	require.Equal(t, "relation", base.EdgeLayout.Label)
+	require.Contains(t, graphStoreTestJSON(t, base), `"label":["old_src"]`)
+	require.Error(t, json.Unmarshal([]byte(`{"label":["type",1]}`), &GraphStoreVertexLayout{}))
+
+	var collection GraphStoreCollectionSchema
+	require.NoError(t, json.Unmarshal([]byte(`{"graphLayout":"edge","graph":{"label":"contains","sourceLabel":["infra","host"],"targetLabel":["app","pod"]}}`), &collection))
+	require.Equal(t, &GraphStoreCollectionGraph{Label: "contains", SourceLabel: []string{"infra", "host"}, TargetLabel: []string{"app", "pod"}}, collection.Graph)
+}
