@@ -32,16 +32,8 @@ const (
 	Compress_LZ4  = iota // 0
 	Compress_None        // 1
 	Compress_ZSTD        // 2
-	Compress_Max         // Historical sentinel for the original compression values.
+	Compress_Max         // max compress type(just for filter invalid compress type)
 )
-
-// CompressionDeflate selects zlib-wrapped DEFLATE for Logstore and GraphStore writes.
-const CompressionDeflate = Compress_Max + 1
-
-// Compress_GZIP selects the same format as CompressionDeflate.
-//
-// Deprecated: Use CompressionDeflate.
-const Compress_GZIP = CompressionDeflate
 
 var InvalidCompressError = errors.New("Invalid Compress Type")
 

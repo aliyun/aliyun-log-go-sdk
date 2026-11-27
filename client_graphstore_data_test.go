@@ -165,7 +165,7 @@ func TestGraphStoreDataWire(t *testing.T) {
 				for _, group := range groups {
 					raw, err := proto.Marshal(group)
 					require.NoError(t, err)
-					for _, compression := range []int{Compress_None, Compress_LZ4, Compress_ZSTD, CompressionDeflate} {
+					for _, compression := range []int{Compress_None, Compress_LZ4, Compress_ZSTD, Compress_GZIP} {
 						require.NoError(t, client.PostGraphStoreData("project", "store", &PostGraphStoreDataRequest{LogGroup: group, CompressType: compression}))
 						check("write", "application/x-protobuf", len(raw))
 						decoded := sent
@@ -180,9 +180,9 @@ func TestGraphStoreDataWire(t *testing.T) {
 							require.Equal(t, "zstd", captured.Header.Get("x-log-compresstype"))
 							decoded, err = slsZstdCompressor.Decompress(sent, nil)
 							require.NoError(t, err)
-						case CompressionDeflate:
+						case Compress_GZIP:
 							require.Equal(t, "deflate", captured.Header.Get("x-log-compresstype"))
-							decoded = decodeLogWriteDeflate(t, sent)
+							decoded = decodeGraphStoreDeflate(t, sent)
 						default:
 							require.Empty(t, captured.Header.Get("x-log-compresstype"))
 						}
@@ -647,7 +647,7 @@ func graphStoreTestGroup(layout string) *LogGroup {
 	return &LogGroup{Logs: []*Log{{Time: proto.Uint32(1), Contents: []*LogContent{graphStoreTestField("__layout__", layout)}}}}
 }
 
-func decodeLogWriteDeflate(t *testing.T, data []byte) []byte {
+func decodeGraphStoreDeflate(t *testing.T, data []byte) []byte {
 	t.Helper()
 	reader, err := zlib.NewReader(bytes.NewReader(data))
 	require.NoError(t, err)
@@ -682,7 +682,7 @@ func TestGraphStoreBatchWriteWire(t *testing.T) {
 		compression int
 		wire        byte
 	}{
-		{Compress_LZ4, 2}, {Compress_None, 0}, {Compress_ZSTD, 3}, {CompressionDeflate, 1},
+		{Compress_LZ4, 2}, {Compress_None, 0}, {Compress_ZSTD, 3}, {Compress_GZIP, 1},
 	} {
 		require.NoError(t, client.BatchPostGraphStoreData("project", "store", &BatchPostGraphStoreDataRequest{
 			LogGroups: groups, CompressType: tc.compression,
@@ -703,8 +703,8 @@ func TestGraphStoreBatchWriteWire(t *testing.T) {
 			case Compress_ZSTD:
 				decoded, err = slsZstdCompressor.Decompress(pack.Data, nil)
 				require.NoError(t, err)
-			case CompressionDeflate:
-				decoded = decodeLogWriteDeflate(t, pack.Data)
+			case Compress_GZIP:
+				decoded = decodeGraphStoreDeflate(t, pack.Data)
 			}
 			require.Equal(t, expected, decoded)
 		}
