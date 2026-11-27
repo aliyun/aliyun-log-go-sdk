@@ -1,14 +1,11 @@
 package sls
 
 import (
-	"bytes"
-	"compress/zlib"
 	"fmt"
 	"io"
 	"net/http"
 	"strconv"
 
-	"github.com/pierrec/lz4/v4"
 	"google.golang.org/protobuf/encoding/protowire"
 )
 
@@ -16,19 +13,6 @@ const (
 	// GraphStoreMaxWriteBytes bounds both uncompressed input and the HTTP request body.
 	GraphStoreMaxWriteBytes = 10 * 1024 * 1024
 	graphStoreMaxWriteLogs  = 100000
-
-	// Compress_GZIP is GraphStore's zlib-wrapped DEFLATE format, matching the Java SDK.
-	Compress_GZIP = Compress_Max + 1
-)
-
-// Compression values in the GraphStore batch write protocol.
-type graphStoreCompression uint64
-
-const (
-	graphStoreCompressionNone graphStoreCompression = iota
-	graphStoreCompressionDeflate
-	graphStoreCompressionLZ4
-	graphStoreCompressionZstd
 )
 
 type PostGraphStoreDataRequest struct {
@@ -56,19 +40,11 @@ func (c *Client) PostGraphStoreData(project, graphStore string, req *PostGraphSt
 	if err != nil {
 		return NewClientError(err)
 	}
-	body, err := compressGraphStoreGroup(raw, compression)
+	body, err := compression.compress(raw)
 	if err != nil {
 		return NewClientError(err)
 	}
-	headers := map[string]string{HTTPHeaderBodyRawSize: strconv.Itoa(len(raw))}
-	switch compression {
-	case graphStoreCompressionLZ4:
-		headers["x-log-compresstype"] = "lz4"
-	case graphStoreCompressionZstd:
-		headers["x-log-compresstype"] = "zstd"
-	case graphStoreCompressionDeflate:
-		headers["x-log-compresstype"] = "deflate"
-	}
+	headers := logWriteHeaders(len(raw), compression.header)
 	return c.sendGraphStoreWrite(project, uri, headers, body)
 }
 
@@ -88,26 +64,23 @@ func (c *Client) BatchPostGraphStoreData(project, graphStore string, req *BatchP
 		if err != nil {
 			return NewClientError(err)
 		}
-		data, err := compressGraphStoreGroup(raw, compression)
+		data, err := compression.compress(raw)
 		if err != nil {
 			return NewClientError(err)
 		}
-		body, err = appendGraphStorePackage(body, data, uint64(len(raw)), compression)
+		body, err = appendGraphStorePackage(body, data, uint64(len(raw)), compression.packageValue)
 		if err != nil {
 			return err
 		}
 	}
-	headers := map[string]string{
-		HTTPHeaderBodyRawSize: strconv.Itoa(len(body)),
-		"x-log-mode":          "batch_group",
-		"x-log-compresstype":  "mixed",
-	}
+	headers := logWriteHeaders(len(body), "mixed")
+	headers["x-log-mode"] = "batch_group"
 	return c.sendGraphStoreWrite(project, uri, headers, body)
 }
 
-// The GraphStore package adds field 3 for explicit compression. Encode it here
-// so the shared LogStore protobuf types keep their existing fields.
-func appendGraphStorePackage(body, data []byte, rawSize uint64, compression graphStoreCompression) ([]byte, error) {
+// The SLS batch protocol carries explicit compression in field 3. Encode it
+// here so the shared Go protobuf types keep their existing fields.
+func appendGraphStorePackage(body, data []byte, rawSize, compression uint64) ([]byte, error) {
 	const (
 		packageField     = 1
 		dataField        = 1
@@ -116,7 +89,7 @@ func appendGraphStorePackage(body, data []byte, rawSize uint64, compression grap
 	)
 	packageSize := protowire.SizeTag(dataField) + protowire.SizeBytes(len(data)) +
 		protowire.SizeTag(rawSizeField) + protowire.SizeVarint(rawSize) +
-		protowire.SizeTag(compressionField) + protowire.SizeVarint(uint64(compression))
+		protowire.SizeTag(compressionField) + protowire.SizeVarint(compression)
 	if len(body)+protowire.SizeTag(packageField)+protowire.SizeBytes(packageSize) > GraphStoreMaxWriteBytes {
 		return nil, graphStoreWriteSizeError()
 	}
@@ -127,55 +100,46 @@ func appendGraphStorePackage(body, data []byte, rawSize uint64, compression grap
 	body = protowire.AppendTag(body, rawSizeField, protowire.VarintType)
 	body = protowire.AppendVarint(body, rawSize)
 	body = protowire.AppendTag(body, compressionField, protowire.VarintType)
-	return protowire.AppendVarint(body, uint64(compression)), nil
+	return protowire.AppendVarint(body, compression), nil
 }
 
-func prepareGraphStoreWrite(project, graphStore string, groups []*LogGroup, compressType int) (string, graphStoreCompression, error) {
-	var compression graphStoreCompression
-	switch compressType {
-	case Compress_None:
-		compression = graphStoreCompressionNone
-	case Compress_LZ4:
-		compression = graphStoreCompressionLZ4
-	case Compress_ZSTD:
-		compression = graphStoreCompressionZstd
-	case Compress_GZIP:
-		compression = graphStoreCompressionDeflate
-	default:
-		return "", 0, InvalidCompressError
+func prepareGraphStoreWrite(project, graphStore string, groups []*LogGroup, compressType int) (string, logWriteCompression, error) {
+	compression, err := resolveLogWriteCompression(compressType)
+	if err != nil {
+		return "", logWriteCompression{}, err
 	}
 	if project == "" {
-		return "", 0, NewClientError(fmt.Errorf("project is required"))
+		return "", logWriteCompression{}, NewClientError(fmt.Errorf("project is required"))
 	}
 	uri, err := graphStorePath(graphStore)
 	if err != nil {
-		return "", 0, NewClientError(err)
+		return "", logWriteCompression{}, NewClientError(err)
 	}
 	if len(groups) == 0 {
-		return "", 0, NewClientError(fmt.Errorf("logGroups must not be empty"))
+		return "", logWriteCompression{}, NewClientError(fmt.Errorf("logGroups must not be empty"))
 	}
 	var records, rawSize int
 	for i, group := range groups {
 		if group == nil || len(group.Logs) == 0 {
-			return "", 0, NewClientError(fmt.Errorf("logGroups[%d] must not be nil or empty", i))
+			return "", logWriteCompression{}, NewClientError(fmt.Errorf("logGroups[%d] must not be nil or empty", i))
 		}
 		records += len(group.Logs)
 		if records > graphStoreMaxWriteLogs {
-			return "", 0, NewClientError(fmt.Errorf("GraphStore write exceeds %d records", graphStoreMaxWriteLogs))
+			return "", logWriteCompression{}, NewClientError(fmt.Errorf("GraphStore write exceeds %d records", graphStoreMaxWriteLogs))
 		}
 		for j, record := range group.Logs {
 			if err := validateGraphStoreRecord(record); err != nil {
-				return "", 0, NewClientError(fmt.Errorf("logGroups[%d].logs[%d]: %w", i, j, err))
+				return "", logWriteCompression{}, NewClientError(fmt.Errorf("logGroups[%d].logs[%d]: %w", i, j, err))
 			}
 		}
 		for j, tag := range group.LogTags {
 			if tag == nil || tag.Key == nil || tag.Value == nil {
-				return "", 0, NewClientError(fmt.Errorf("logGroups[%d].logTags[%d] requires key and value", i, j))
+				return "", logWriteCompression{}, NewClientError(fmt.Errorf("logGroups[%d].logTags[%d] requires key and value", i, j))
 			}
 		}
 		rawSize += group.Size()
 		if rawSize > GraphStoreMaxWriteBytes {
-			return "", 0, graphStoreWriteSizeError()
+			return "", logWriteCompression{}, graphStoreWriteSizeError()
 		}
 	}
 	return uri + "/write", compression, nil
@@ -223,36 +187,6 @@ func isGraphStoreWriteTime(value string) bool {
 	return err == nil
 }
 
-func compressGraphStoreGroup(raw []byte, compression graphStoreCompression) ([]byte, error) {
-	switch compression {
-	case graphStoreCompressionLZ4:
-		out := make([]byte, lz4.CompressBlockBound(len(raw)))
-		n, err := lz4.CompressBlock(raw, out, nil)
-		if err != nil {
-			return nil, err
-		}
-		if n == 0 {
-			n, _ = copyIncompressible(raw, out)
-		}
-		return out[:n], nil
-	case graphStoreCompressionZstd:
-		return slsZstdCompressor.Compress(raw, nil)
-	case graphStoreCompressionDeflate:
-		var out bytes.Buffer
-		writer := zlib.NewWriter(&out)
-		if _, err := writer.Write(raw); err != nil {
-			_ = writer.Close()
-			return nil, err
-		}
-		if err := writer.Close(); err != nil {
-			return nil, err
-		}
-		return out.Bytes(), nil
-	default:
-		return raw, nil
-	}
-}
-
 func graphStoreWriteSizeError() error {
 	return &Error{HTTPCode: -1, Code: "PostBodyTooLarge", Message: "GraphStore request exceeds 10 MiB"}
 }
@@ -261,7 +195,6 @@ func (c *Client) sendGraphStoreWrite(project, uri string, headers map[string]str
 	if len(body) > GraphStoreMaxWriteBytes {
 		return graphStoreWriteSizeError()
 	}
-	headers[HTTPHeaderContentType] = "application/x-protobuf"
 	response, err := request(convert(c, project), http.MethodPost, uri, headers, body)
 	if err != nil {
 		return NewClientError(err)

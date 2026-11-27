@@ -128,9 +128,10 @@ rows, err := client.GetGraphStoreData(project, storeName, &sls.GetGraphStoreData
 // nil is JSON null; numbers are json.Number; strings, booleans, maps and lists remain native. Handle err first.
 ```
 
-Both write methods return an error. They support NONE, LZ4 (default), Zstd and GZIP (wire
-`deflate`). Each request must have nonempty LogGroups. Every record must have nonzero
-protobuf `Time` and exactly one `__layout__` Content with value `vertex` or `edge`.
+Both write methods return an error. They share the Go Logstore options `Compress_None`,
+`Compress_LZ4` (default), `Compress_ZSTD` and `CompressionDeflate` (wire `deflate`).
+Each request must have nonempty LogGroups. Every record must have nonzero protobuf `Time`
+and exactly one `__layout__` Content with value `vertex` or `edge`.
 Optional `__active_from__` and `__active_to__` must occur together as decimal uint32
 Unix seconds. Write requests are limited to 100,000 records and 10 MiB for both raw
 input and the HTTP body.
