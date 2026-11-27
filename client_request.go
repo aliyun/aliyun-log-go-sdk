@@ -34,7 +34,7 @@ func (c *Client) request(project, method, uri string, headers map[string]string,
 
 	// SLS public request headers
 	var hostStr string
-	if len(project) == 0 {
+	if len(project) == 0 || c.IsCname {
 		hostStr = endpoint
 	} else {
 		hostStr = project + "." + endpoint
@@ -78,6 +78,9 @@ func (c *Client) request(project, method, uri string, headers map[string]string,
 	}
 	for k, v := range c.InnerHeaders {
 		headers[k] = v
+	}
+	if c.IsCname && project != "" {
+		headers[HTTPHeaderProject] = project
 	}
 	var signer Signer
 	if authVersion == AuthV4 {

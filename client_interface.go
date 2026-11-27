@@ -97,6 +97,8 @@ type ClientInterface interface {
 	PostGraphStoreData(project, graphStore string, req *PostGraphStoreDataRequest) error
 	BatchPostGraphStoreData(project, graphStore string, req *BatchPostGraphStoreDataRequest) error
 	GetGraphStoreData(project, graphStore string, req *GetGraphStoreDataRequest) (*GetGraphStoreDataResponse, error)
+	// SetIsCname configures endpoint-only routing before sending requests.
+	SetIsCname(isCname bool)
 	// SetUserAgent set userAgent for sls client
 	SetUserAgent(userAgent string)
 	// SetHTTPClient set a custom http client, all request will send to sls by this client

@@ -57,7 +57,9 @@ type LogProject struct {
 	UsingHTTP          bool            // Deprecated: will be made private in the next version
 	UserAgent          string          // Deprecated: will be made private in the next version
 	AuthVersion        AuthVersionType // Deprecated: will be made private in the next version
+	IsCname            bool            `json:"-"` // Use Endpoint directly and route by x-log-project; configure before sending requests.
 	baseURL            string
+	cnameBaseURL       string
 	retryTimeout       time.Duration
 	httpClient         *http.Client
 	credentialProvider CredentialsProvider
@@ -97,6 +99,13 @@ func NewLogProjectV2(name, endpoint string, provider CredentialsProvider) (p *Lo
 	}
 	p.parseEndpoint()
 	return p, nil
+}
+
+// SetIsCname enables routing through Endpoint without a project hostname prefix.
+// Configure this option before sending requests; concurrent changes are not supported.
+func (p *LogProject) SetIsCname(isCname bool) {
+	p.IsCname = isCname
+	p.parseEndpointIfNeeded()
 }
 
 // Deprecated: With credentials provider
@@ -1374,6 +1383,9 @@ func (p *LogProject) init() {
 
 func (p *LogProject) getBaseURL() string {
 	p.parseEndpointIfNeeded()
+	if p.IsCname {
+		return p.cnameBaseURL
+	}
 	return p.baseURL
 }
 
@@ -1399,8 +1411,9 @@ func (p *LogProject) parseEndpoint() {
 	if GlobalForceUsingHTTP || p.UsingHTTP {
 		scheme = httpScheme
 	}
+	p.cnameBaseURL = fmt.Sprintf("%s%s", scheme, host)
 	if len(p.Name) == 0 {
-		p.baseURL = fmt.Sprintf("%s%s", scheme, host)
+		p.baseURL = p.cnameBaseURL
 	} else {
 		p.baseURL = fmt.Sprintf("%s%s.%s", scheme, p.Name, host)
 	}
