@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/pierrec/lz4/v4"
+	"google.golang.org/protobuf/encoding/protowire"
 )
 
 const (
@@ -18,6 +19,16 @@ const (
 
 	// Compress_GZIP is GraphStore's zlib-wrapped DEFLATE format, matching the Java SDK.
 	Compress_GZIP = Compress_Max + 1
+)
+
+// Compression values in the GraphStore batch write protocol.
+type graphStoreCompression uint64
+
+const (
+	graphStoreCompressionNone graphStoreCompression = iota
+	graphStoreCompressionDeflate
+	graphStoreCompressionLZ4
+	graphStoreCompressionZstd
 )
 
 type PostGraphStoreDataRequest struct {
@@ -51,11 +62,11 @@ func (c *Client) PostGraphStoreData(project, graphStore string, req *PostGraphSt
 	}
 	headers := map[string]string{HTTPHeaderBodyRawSize: strconv.Itoa(len(raw))}
 	switch compression {
-	case SlsCompressType_SLS_CMP_LZ4:
+	case graphStoreCompressionLZ4:
 		headers["x-log-compresstype"] = "lz4"
-	case SlsCompressType_SLS_CMP_ZSTD:
+	case graphStoreCompressionZstd:
 		headers["x-log-compresstype"] = "zstd"
-	case SlsCompressType_SLS_CMP_DEFLATE:
+	case graphStoreCompressionDeflate:
 		headers["x-log-compresstype"] = "deflate"
 	}
 	return c.sendGraphStoreWrite(project, uri, headers, body)
@@ -71,7 +82,7 @@ func (c *Client) BatchPostGraphStoreData(project, graphStore string, req *BatchP
 	if err != nil {
 		return err
 	}
-	batch := SlsLogPackageList{Packages: make([]*SlsLogPackage, 0, len(req.LogGroups))}
+	var body []byte
 	for _, group := range req.LogGroups {
 		raw, err := group.Marshal()
 		if err != nil {
@@ -81,15 +92,10 @@ func (c *Client) BatchPostGraphStoreData(project, graphStore string, req *BatchP
 		if err != nil {
 			return NewClientError(err)
 		}
-		rawSize := int32(len(raw))
-		batch.Packages = append(batch.Packages, &SlsLogPackage{Data: data, UncompressSize: &rawSize, CompressType: &compression})
-	}
-	if batch.Size() > GraphStoreMaxWriteBytes {
-		return graphStoreWriteSizeError()
-	}
-	body, err := batch.Marshal()
-	if err != nil {
-		return NewClientError(err)
+		body, err = appendGraphStorePackage(body, data, uint64(len(raw)), compression)
+		if err != nil {
+			return err
+		}
 	}
 	headers := map[string]string{
 		HTTPHeaderBodyRawSize: strconv.Itoa(len(body)),
@@ -99,17 +105,42 @@ func (c *Client) BatchPostGraphStoreData(project, graphStore string, req *BatchP
 	return c.sendGraphStoreWrite(project, uri, headers, body)
 }
 
-func prepareGraphStoreWrite(project, graphStore string, groups []*LogGroup, compressType int) (string, SlsCompressType, error) {
-	var compression SlsCompressType
+// The GraphStore package adds field 3 for explicit compression. Encode it here
+// so the shared LogStore protobuf types keep their existing fields.
+func appendGraphStorePackage(body, data []byte, rawSize uint64, compression graphStoreCompression) ([]byte, error) {
+	const (
+		packageField     = 1
+		dataField        = 1
+		rawSizeField     = 2
+		compressionField = 3
+	)
+	packageSize := protowire.SizeTag(dataField) + protowire.SizeBytes(len(data)) +
+		protowire.SizeTag(rawSizeField) + protowire.SizeVarint(rawSize) +
+		protowire.SizeTag(compressionField) + protowire.SizeVarint(uint64(compression))
+	if len(body)+protowire.SizeTag(packageField)+protowire.SizeBytes(packageSize) > GraphStoreMaxWriteBytes {
+		return nil, graphStoreWriteSizeError()
+	}
+	body = protowire.AppendTag(body, packageField, protowire.BytesType)
+	body = protowire.AppendVarint(body, uint64(packageSize))
+	body = protowire.AppendTag(body, dataField, protowire.BytesType)
+	body = protowire.AppendBytes(body, data)
+	body = protowire.AppendTag(body, rawSizeField, protowire.VarintType)
+	body = protowire.AppendVarint(body, rawSize)
+	body = protowire.AppendTag(body, compressionField, protowire.VarintType)
+	return protowire.AppendVarint(body, uint64(compression)), nil
+}
+
+func prepareGraphStoreWrite(project, graphStore string, groups []*LogGroup, compressType int) (string, graphStoreCompression, error) {
+	var compression graphStoreCompression
 	switch compressType {
 	case Compress_None:
-		compression = SlsCompressType_SLS_CMP_NONE
+		compression = graphStoreCompressionNone
 	case Compress_LZ4:
-		compression = SlsCompressType_SLS_CMP_LZ4
+		compression = graphStoreCompressionLZ4
 	case Compress_ZSTD:
-		compression = SlsCompressType_SLS_CMP_ZSTD
+		compression = graphStoreCompressionZstd
 	case Compress_GZIP:
-		compression = SlsCompressType_SLS_CMP_DEFLATE
+		compression = graphStoreCompressionDeflate
 	default:
 		return "", 0, InvalidCompressError
 	}
@@ -192,9 +223,9 @@ func isGraphStoreWriteTime(value string) bool {
 	return err == nil
 }
 
-func compressGraphStoreGroup(raw []byte, compression SlsCompressType) ([]byte, error) {
+func compressGraphStoreGroup(raw []byte, compression graphStoreCompression) ([]byte, error) {
 	switch compression {
-	case SlsCompressType_SLS_CMP_LZ4:
+	case graphStoreCompressionLZ4:
 		out := make([]byte, lz4.CompressBlockBound(len(raw)))
 		n, err := lz4.CompressBlock(raw, out, nil)
 		if err != nil {
@@ -204,9 +235,9 @@ func compressGraphStoreGroup(raw []byte, compression SlsCompressType) ([]byte, e
 			n, _ = copyIncompressible(raw, out)
 		}
 		return out[:n], nil
-	case SlsCompressType_SLS_CMP_ZSTD:
+	case graphStoreCompressionZstd:
 		return slsZstdCompressor.Compress(raw, nil)
-	case SlsCompressType_SLS_CMP_DEFLATE:
+	case graphStoreCompressionDeflate:
 		var out bytes.Buffer
 		writer := zlib.NewWriter(&out)
 		if _, err := writer.Write(raw); err != nil {

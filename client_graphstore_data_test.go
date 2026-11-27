@@ -20,6 +20,7 @@ import (
 	"github.com/jarcoal/httpmock"
 	"github.com/pierrec/lz4/v4"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/encoding/protowire"
 )
 
 const graphStoreRows = `{"data":{"fields":["a","b","node"],"values":[[null,"","{\"id\":\"雪\"}"],["x\u0000y","雪","s"]]},"status":"incomplete","stats":{"rowCount":2,"elapsedMs":-9223372036854775808,"peakMemoryBytes":18446744073709551615},"warnings":["","雪"]}`
@@ -679,7 +680,7 @@ func TestGraphStoreBatchWriteWire(t *testing.T) {
 	groups := []*LogGroup{vertex, edge}
 	for _, tc := range []struct {
 		compression int
-		wire        int32
+		wire        byte
 	}{
 		{Compress_LZ4, 2}, {Compress_None, 0}, {Compress_ZSTD, 3}, {Compress_GZIP, 1},
 	} {
@@ -688,8 +689,7 @@ func TestGraphStoreBatchWriteWire(t *testing.T) {
 		}))
 		require.Len(t, batch.Packages, len(groups))
 		for i, pack := range batch.Packages {
-			require.NotNil(t, pack.CompressType)
-			require.Equal(t, tc.wire, int32(pack.GetCompressType()))
+			require.Equal(t, []byte{byte(protowire.EncodeTag(3, protowire.VarintType)), tc.wire}, pack.XXX_unrecognized)
 			require.Equal(t, int32(groups[i].Size()), pack.GetUncompressSize())
 			expected, err := groups[i].Marshal()
 			require.NoError(t, err)

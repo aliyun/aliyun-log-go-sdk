@@ -37,19 +37,10 @@ message LogGroup
     repeated LogTag LogTags = 6;
 }
 
-enum SlsCompressType
-{
-    SLS_CMP_NONE = 0;
-    SLS_CMP_DEFLATE = 1;
-    SLS_CMP_LZ4 = 2;
-    SLS_CMP_ZSTD = 3;
-}
-
 message SlsLogPackage
 {
     required bytes data = 1;  // the serialized data of LogGroup , may be compressed
     optional int32 uncompress_size = 2;  
-    optional SlsCompressType compress_type = 3;
 }
 
 message SlsLogPackageList
